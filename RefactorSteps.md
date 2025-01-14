@@ -1,5 +1,5 @@
 # Шаги по рефакторингу и сбору курса
-## Презентация
+## Презентация ✅
 Презентацию которую делал Илья Беляев нужно привести к новому [шаблону презентации контура](https://docs.google.com/presentation/d/1akx4NLOZ4rl7k9x8O9tVYnRLbFz3yMAs/edit#slide=id.p1).   
 [Пример из раздела "Чистый код c#"](https://docs.google.com/presentation/d/1ClPyPkg_Cq5W8uVR5PBCrjE-paASY5isxhSqA_Z1iYE/edit#slide=id.p1)
 

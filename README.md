@@ -31,5 +31,5 @@
 
 Оставить обратную связь можно в анкете (QR кликабельный🙃):
 
-[![feedback](feedback-qr.jpg)](https://forms.kontur.ru/form/919474ce-8f9e-49ca-8d8a-b2cc762d2198)
-
+[![feedback](feedback-qr.jpg)](https://forms.kontur.ru/form/919474ce-8f9e-49ca-8d8a-b2cc762d2198)    
+[Презентация доступна в онлайне](https://docs.google.com/presentation/d/1AJ-7lnxgACAPNIal92rmQ8jSAd6uJiKB)
