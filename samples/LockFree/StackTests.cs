@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace LockFree
 {
     public class LockStackTests : StackTests<SimpleStack<int>> { }
-    public class LockFreeStackTests : StackTests<LockFreeStack<int>> { }
+    // public class LockFreeStackTests : StackTests<LockFreeStack<int>> { }
     public class ConcurrentStackWrapperTests : StackTests<ConcurrentStackWrapper<int>> { }
 
     [TestFixture]

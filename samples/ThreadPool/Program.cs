@@ -10,6 +10,11 @@ namespace ThreadPool
 	[TestFixture]
 	public class Program
 	{
+		private static IThreadPool CreateThreadPool(int concurrency)
+			=> new MyThreadPool(concurrency);
+
+		private const int Concurrency = 4;
+
 		[Test]
 		public void TestOneAction()
 		{
@@ -26,7 +31,7 @@ namespace ThreadPool
 			Enumerable.Range(0, iterations).ForEach(_ => TestOneAction());
 		}
 
-		[TestCase(1000)]
+		[TestCase(2000)]
 		public void TestDispose(int iterations)
 		{
 			Enumerable.Range(0, iterations).AsParallel().WithDegreeOfParallelism(Environment.ProcessorCount).ForAll(_ => TestOneAction());
@@ -51,12 +56,31 @@ namespace ThreadPool
 		[TestCase(1000), Explicit("Next level")]
 		public void TestNoSleepInDispatchLoop(int iterations)
 		{
-			using var threadPool = CreateThreadPool(4);
 			var stopwatch = Stopwatch.StartNew();
 			Enumerable.Range(0, iterations).ForEach(_ => TestOneAction());
 			stopwatch.Stop();
 			Console.WriteLine(stopwatch.Elapsed);
 			Assert.Less(stopwatch.ElapsedMilliseconds, iterations);
+		}
+
+		[Test]
+		public void TestFasterThanSequentiallyExecuting()
+		{
+			var eventsCount = Concurrency * 2;
+			using var threadPool = CreateThreadPool(Concurrency);
+			var countdownEvent = new CountdownEvent(eventsCount);
+
+			var sw = Stopwatch.StartNew();
+			Action action = () =>
+			{
+				Thread.Sleep(500);
+				countdownEvent.Signal();
+			};
+			for (var i = 0; i < eventsCount; i++)
+				threadPool.EnqueueAction(action);
+			countdownEvent.Wait();
+			sw.Stop();
+			Assert.AreEqual(1_000, sw.ElapsedMilliseconds, 250);
 		}
 
 		[Test, Explicit("Next level")]
@@ -74,13 +98,9 @@ namespace ThreadPool
 			var cpuUsage = (end - start).TotalMilliseconds / (Environment.ProcessorCount * sw.ElapsedMilliseconds);
 			Console.WriteLine("CPU Usage with idle ThreadPool: " + cpuUsage.ToString("P"));
 
-			Assert.Less(cpuUsage, 0.5);
+			Assert.Less(cpuUsage, 0.5 / Environment.ProcessorCount);
+			GC.KeepAlive(threadPool);
 		}
-
-		private static IThreadPool CreateThreadPool(int concurrency)
-			=> new SimpleLockThreadPool(concurrency);
-
-		private const int Concurrency = 4;
 	}
 
 	public static class Extension
