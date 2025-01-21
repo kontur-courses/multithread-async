@@ -19,11 +19,11 @@ public class SharedResourcePerformanceTests
     [Test]
     public void TestLockPerformance()
     {
-        _sharedResource = new SharedResource();
+        _sharedResource = new SharedResourceLock();
         long lockTime = MeasurePerformance();
         Console.WriteLine($"Lock time taken: {lockTime} ms");
 
-        _sharedResource = new SharedResourceRWLock();
+        _sharedResource = new SharedResourceRwLock();
         long rwLockTime = MeasurePerformance();
         Console.WriteLine($"ReaderWriterLock time taken: {rwLockTime} ms");
 
@@ -33,39 +33,11 @@ public class SharedResourcePerformanceTests
 
     private long MeasurePerformance()
     {
-        // Реализацию заменить на throw new NotImplementedException(). Нужно будет им самим реализовать тест производительности
-        var threads = new List<Thread>();
-        
-        for (var i = 0; i < ReadersThreads; i++)
-        {
-            threads.Add(new Thread(() =>
-            {
-                for (var j = 0; j < NumberOfIterations; j++)
-                {
-                    var _ = _sharedResource.Read();
-                    _sharedResource.ComputeFactorial(FactorialNumber);
-                }
-            }));
-        }
-        for (var i = 0; i < WritersThreads; i++)
-        {
-            threads.Add(new Thread(() =>
-            {
-                for (var j = 0; j < NumberOfIterations; j++)
-                {
-                    _sharedResource.Write("Big writed data" + j*j*j);
-                    _sharedResource.ComputeFactorial(FactorialNumber);
-                }
-            }));
-        }
-        
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-        
-        threads.ForEach(thread => thread.Start());
-        threads.ForEach(thread => thread.Join());
-
-        stopwatch.Stop();
-        return stopwatch.ElapsedMilliseconds;
+        // Нужно реализовать тест производительности.
+        // В многопоточном режиме нужно запустить:
+        // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
+        // - Запись значений в количестве WritersThreads записывающих потоков
+        // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
+        throw new NotImplementedException();
     }
 }
