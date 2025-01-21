@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ClusterServer": {
+      "commandName": "Project",
+      "commandLineArgs": "-p 31337 -d 3000 -n qqq "
+    }
+  }
+}
