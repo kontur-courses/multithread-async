@@ -10,7 +10,7 @@ namespace ReaderWriterLock;
 [TestFixture]
 public class SharedResourcePerformanceTests
 {
-    private ISharedResource _sharedResource;
+    private SharedResourceBase _sharedResource;
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
     private const int NumberOfIterations = 10000;
