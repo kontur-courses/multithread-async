@@ -35,8 +35,4 @@ _ReSharper*/
 .idea
 *.DotSettings
 
-SkbKontur.Staff.Site/App_Data/ImageCache/*
-SkbKontur.Staff.Site/App_Data/LuceneIndex/*
-SkbKontur.Staff.Web/App_Data/LuceneIndex/*
-SkbKontur.Staff.Web/scripts/*.d.ts
-Integration/SkbKontur.Staff.Integration.EsbClient/pack.cmd
+for-teacher/
