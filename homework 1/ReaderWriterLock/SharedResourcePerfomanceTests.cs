@@ -19,7 +19,6 @@ public class SharedResourcePerformanceTests
     [Test]
     public void TestLockPerformance()
     {
-
         sharedResource = new SharedResourceLock();
         long lockTime = MeasurePerformance();
         Console.WriteLine($"Lock time taken: {lockTime} ms");

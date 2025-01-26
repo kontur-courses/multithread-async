@@ -8,7 +8,7 @@ namespace ReaderWriterLock;
 [TestFixture]
 public class SharedResourceTests
 {
-    private List<int> threadsOrder;
+    private List<int> threadsIdsOrder;
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
     private SharedResourceBase sharedResource;
@@ -17,7 +17,7 @@ public class SharedResourceTests
     [SetUp]
     public void SetUp()
     {
-        threadsOrder = new List<int>();
+        threadsIdsOrder = new List<int>();
         manualResetEvent = new ManualResetEvent(false);
     }
 
@@ -39,9 +39,9 @@ public class SharedResourceTests
 
         var values = sharedResourceAsLock.Values;
         values.Should().HaveCount(WritersThreads);
-        for (var i = 0; i < threadsOrder.Count; i++)
+        for (var i = 0; i < threadsIdsOrder.Count; i++)
         {
-            var expected = $"Data {threadsOrder[i]}";
+            var expected = $"Data {threadsIdsOrder[i]}";
             var actual = values[i];
             actual.Should().Be(expected);
         }
@@ -65,9 +65,9 @@ public class SharedResourceTests
 
         var values = sharedResourceAsRwLock.Values;
         values.Should().HaveCount(WritersThreads);
-        for (var i = 0; i < threadsOrder.Count; i++)
+        for (var i = 0; i < threadsIdsOrder.Count; i++)
         {
-            var expected = $"Data {threadsOrder[i]}";
+            var expected = $"Data {threadsIdsOrder[i]}";
             var actual = values[i];
             actual.Should().Be(expected);
         }
@@ -82,10 +82,10 @@ public class SharedResourceTests
             result[i] = new Thread(() =>
             {
                 manualResetEvent.WaitOne();
-                lock (threadsOrder)
+                lock (threadsIdsOrder)
                 {
                     sharedResource.Write($"Data {threadId}");
-                    threadsOrder.Add(threadId);
+                    threadsIdsOrder.Add(threadId);
                 }
             });
             result[i].Start();
