@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 
@@ -27,17 +28,47 @@ public class SharedResourcePerformanceTests
         long rwLockTime = MeasurePerformance();
         Console.WriteLine($"ReaderWriterLock time taken: {rwLockTime} ms");
 
-        // Проверка, что время выполнения с ReaderWriterLock меньше, чем с Lock
         ClassicAssert.Less(rwLockTime, lockTime, "ReaderWriterLock should be faster than Lock");
     }
 
     private long MeasurePerformance()
     {
-        // Нужно реализовать тест производительности.
-        // В многопоточном режиме нужно запустить:
-        // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
-        // - Запись значений в количестве WritersThreads записывающих потоков
-        // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
-        throw new NotImplementedException();
+        var stopwatch = new Stopwatch();
+        var countdown = new CountdownEvent(WritersThreads + ReadersThreads);
+
+        stopwatch.Start();
+
+        for (var i = 0; i < WritersThreads; i++)
+        {
+            Task.Run(() =>
+            {
+                for (var j = 0; j < NumberOfIterations; j++)
+                {
+                    _sharedResource.Write($"Data {j}");
+                    _sharedResource.ComputeFactorial(FactorialNumber);
+                }
+
+                countdown.Signal();
+            });
+        }
+
+        for (var i = 0; i < ReadersThreads; i++)
+        {
+            Task.Run(() =>
+            {
+                for (var j = 0; j < NumberOfIterations; j++)
+                {
+                    _sharedResource.Read();
+                    _sharedResource.ComputeFactorial(FactorialNumber);
+                }
+
+                countdown.Signal();
+            });
+        }
+
+        countdown.Wait();
+        stopwatch.Stop();
+
+        return stopwatch.ElapsedMilliseconds;
     }
 }

@@ -1,5 +1,4 @@
-using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Threading;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
@@ -14,22 +13,49 @@ public class SharedResourceTests
     private SharedResourceBase _sharedResource;
 
     [Test]
-    public void TestConcurrentReadWrite()
+    public void TestConcurrentReadWriteLock()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной.
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
-        
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        var sharedResource = new SharedResourceLock();
+        TestConcurrentReadWrite(sharedResource);
     }
-    
+
     [Test]
     public void TestConcurrentReadWriteRwLock()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
-        
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        var sharedResource = new SharedResourceRwLock();
+        TestConcurrentReadWrite(sharedResource);
+    }
+
+    private void TestConcurrentReadWrite(SharedResourceBase sharedResource)
+    {
+        var threads = new List<Thread>();
+        var countdown = new CountdownEvent(WritersThreads + ReadersThreads);
+
+        for (var i = 0; i < WritersThreads; i++)
+        {
+            var index = i;
+            var thread = new Thread(() =>
+            {
+                sharedResource.Write($"Data {index}");
+                countdown.Signal();
+            });
+            threads.Add(thread);
+            thread.Start();
+        }
+
+        for (var i = 0; i < ReadersThreads; i++)
+        {
+            var thread = new Thread(() =>
+            {
+                var data = sharedResource.Read();
+                countdown.Signal();
+            });
+            threads.Add(thread);
+            thread.Start();
+        }
+
+        countdown.Wait();
+
+        ClassicAssert.AreEqual($"Data {WritersThreads - 1}", sharedResource.Read());
     }
 }
