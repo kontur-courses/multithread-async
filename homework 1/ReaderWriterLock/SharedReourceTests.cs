@@ -1,35 +1,55 @@
-using System;
 using System.Linq;
 using System.Threading;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 namespace ReaderWriterLock;
 
 [TestFixture]
 public class SharedResourceTests
 {
+    private const int Repeat = 5;
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
     private SharedResourceBase _sharedResource;
-
+    
     [Test]
+    [Repeat(Repeat)]
     public void TestConcurrentReadWrite()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной.
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
-        
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        _sharedResource = new SharedResourceLock();
+        TestConcurrent();
     }
     
     [Test]
+    [Repeat(Repeat)]
     public void TestConcurrentReadWriteRwLock()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
+        _sharedResource = new SharedResourceRwLock();
+        TestConcurrent();
+    }
+
+    private void TestConcurrent()
+    {
+        var writersThreads = new Thread[WritersThreads];
+        var readersThreads = new Thread[ReadersThreads];
+        var textLenght = 0;
+
+        for (var i = 0; i < WritersThreads; i++) 
+        {
+            var text = $"Data {i} ";
+            writersThreads[i] = new Thread(() => _sharedResource.Write(text));
+            textLenght += text.Length;
+        }
+
+        Enumerable.Range(0, ReadersThreads)
+            .ForEach(i => readersThreads[i] = new Thread(() => _sharedResource.Read()));
         
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        writersThreads.ForEach(x => x.Start());
+        readersThreads.ForEach(x => x.Start());
+        writersThreads.ForEach(x => x.Join());
+        readersThreads.ForEach(x => x.Join());
+        
+        Assert.That(_sharedResource.Read(), Does.Contain($"Data {WritersThreads-1} "));
+        Assert.That(_sharedResource.Read().Length, Is.EqualTo(textLenght));
     }
 }
