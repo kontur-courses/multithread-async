@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using NUnit.Framework;
@@ -13,8 +12,8 @@ public class SharedResourcePerformanceTests
     private SharedResourceBase _sharedResource;
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
-    private const int NumberOfIterations = 10000;
-    private const int FactorialNumber = 60; // Большое число для вычисления факториала
+    private const int NumberOfIterations = 1000;
+    private const int FactorialNumber = 100; // Большое число для вычисления факториала
 
     [Test]
     public void TestLockPerformance()
@@ -33,11 +32,43 @@ public class SharedResourcePerformanceTests
 
     private long MeasurePerformance()
     {
-        // Нужно реализовать тест производительности.
-        // В многопоточном режиме нужно запустить:
-        // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
-        // - Запись значений в количестве WritersThreads записывающих потоков
-        // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
-        throw new NotImplementedException();
+        var totalTime = 0L;
+        for (var i = 0; i < NumberOfIterations; i++)
+            totalTime += MeasureOneIteration();
+        return totalTime / NumberOfIterations;
+    }
+
+    private long MeasureOneIteration()
+    {
+        var countdown = new CountdownEvent(ReadersThreads + WritersThreads);
+        var startEvent = new ManualResetEventSlim();
+        
+        for (var i = 0; i < WritersThreads; i++)
+        {
+            var thread = new Thread(() =>
+            {
+                startEvent.Wait();
+                _sharedResource.ComputeFactorialWrite(FactorialNumber);
+                countdown.Signal();
+            });
+            thread.Start();
+        }
+
+        for (var i = 0; i < ReadersThreads; i++)
+        {
+            var thread = new Thread(() =>
+            {
+                startEvent.Wait();
+                _sharedResource.ComputeFactorialRead(FactorialNumber);
+                countdown.Signal();
+            });
+            thread.Start();
+        }
+        
+        var sw = Stopwatch.StartNew();
+        startEvent.Set();
+        countdown.Wait();
+        sw.Stop();
+        return sw.ElapsedMilliseconds;
     }
 }
