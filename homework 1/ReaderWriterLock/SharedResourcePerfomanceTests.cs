@@ -15,7 +15,7 @@ public class SharedResourcePerformanceTests
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
     private const int NumberOfIterations = 10000;
-    private const int FactorialNumber = 60; // Большое число для вычисления факториала
+    private const int FactorialNumber = 70; // Большое число для вычисления факториала
 
     [Test]
     public void TestLockPerformance()
@@ -39,26 +39,8 @@ public class SharedResourcePerformanceTests
     // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
     private long MeasurePerformance()
     {
-        var writers = Enumerable.Range(0, WritersThreads)
-            .Select(_ => new Thread(() =>
-            {
-                for (int i = 0; i < NumberOfIterations; i++)
-                {
-                    _sharedResource.Write("");
-                    _sharedResource.ComputeFactorial(FactorialNumber);
-                }
-            }))
-            .ToList();
-        var readers = Enumerable.Range(0, ReadersThreads)
-            .Select(_ => new Thread(() =>
-            {
-                for (int i = 0; i < NumberOfIterations; i++)
-                {
-                    _sharedResource.Read();
-                    _sharedResource.ComputeFactorial(FactorialNumber);
-                }
-            }))
-            .ToList();
+        var writers = CreateThreads(WritersThreads, () => _sharedResource.Write("")).ToList();
+        var readers = CreateThreads(ReadersThreads, () => _sharedResource.Read()).ToList();
 
         var allThreads = writers.Concat(readers).ToList();
         var stopwatch = new Stopwatch();
@@ -69,4 +51,14 @@ public class SharedResourcePerformanceTests
 
         return stopwatch.ElapsedMilliseconds;
     }
+
+    private IEnumerable<Thread> CreateThreads(int numberOfThreads, Action action) =>
+        Enumerable.Range(0, numberOfThreads).Select(x => new Thread(() =>
+        {
+            for (var i = 0; i < NumberOfIterations; i++)
+            {
+                action.Invoke();
+                _sharedResource.ComputeFactorial(FactorialNumber);
+            }
+        }));
 }
