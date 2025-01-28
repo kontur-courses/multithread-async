@@ -2,18 +2,30 @@ namespace ReaderWriterLock;
 
 public class SharedResourceLock : SharedResourceBase
 {
+    private string _localData = "";
+    private readonly object _lock = new();
+
     public override void Write(string data)
     {
-        throw new System.NotImplementedException();
+        lock (_lock)
+        {
+            _localData = data;
+        }
     }
 
     public override string Read()
     {
-        throw new System.NotImplementedException();
+        lock (_lock)
+        {
+            return _localData;
+        }
     }
 
     public override long ComputeFactorial(int number)
     {
-        throw new System.NotImplementedException();
+        lock (_lock)
+        {
+            return Factorial(number);
+        }
     }
 }
