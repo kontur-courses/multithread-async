@@ -4,16 +4,19 @@ public class SharedResourceLock : SharedResourceBase
 {
     public override void Write(string data)
     {
-        throw new System.NotImplementedException();
+        lock (Resource)
+            Resource.Append(data);
     }
 
     public override string Read()
     {
-        throw new System.NotImplementedException();
+        lock (Resource)
+            return Resource.ToString();
     }
 
     public override long ComputeFactorial(int number)
     {
-        throw new System.NotImplementedException();
+        lock (Resource)
+            return Factorial(number);
     }
 }

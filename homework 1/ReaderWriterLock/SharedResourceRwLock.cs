@@ -1,19 +1,33 @@
+using System.Threading;
+
 namespace ReaderWriterLock;
 
 public class SharedResourceRwLock : SharedResourceBase
 {
+    private readonly ReaderWriterLockSlim _rwLock = new();
+    
     public override void Write(string data)
     {
-        throw new System.NotImplementedException();
+        _rwLock.EnterWriteLock();
+        Resource.Append(data);
+        _rwLock.ExitWriteLock();
     }
 
     public override string Read()
     {
-        throw new System.NotImplementedException();
+        _rwLock.EnterReadLock();
+        var result = Resource.ToString();
+        _rwLock.ExitReadLock();
+        
+        return result;
     }
 
     public override long ComputeFactorial(int number)
     {
-        throw new System.NotImplementedException();
+        _rwLock.EnterReadLock();
+        var result = Factorial(number);
+        _rwLock.ExitReadLock();
+        
+        return result;
     }
 }
