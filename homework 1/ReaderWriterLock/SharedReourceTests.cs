@@ -29,7 +29,7 @@ public class SharedResourceTests
         // Проверка должна быть многопоточной
         // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
         
-        // ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        ConcurrentSharedResourceTest(new SharedResourceRwLock());
     }
 
     private static void ConcurrentSharedResourceTest(SharedResourceBase sharedResource)
