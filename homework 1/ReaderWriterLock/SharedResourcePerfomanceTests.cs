@@ -1,17 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 namespace ReaderWriterLock;
 
 [TestFixture]
 public class SharedResourcePerformanceTests
 {
-    private SharedResourceBase _sharedResource;
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
     private const int NumberOfIterations = 10000;
@@ -20,19 +17,17 @@ public class SharedResourcePerformanceTests
     [Test]
     public void TestLockPerformance()
     {
-        _sharedResource = new SharedResourceLock();
-        long lockTime = MeasurePerformance();
+        var lockTime = MeasurePerformance(new SharedResourceLock());
         Console.WriteLine($"Lock time taken: {lockTime} ms");
 
-        _sharedResource = new SharedResourceRwLock();
-        long rwLockTime = MeasurePerformance();
+        var rwLockTime = MeasurePerformance(new SharedResourceRwLock());
         Console.WriteLine($"ReaderWriterLock time taken: {rwLockTime} ms");
 
         // Проверка, что время выполнения с ReaderWriterLock меньше, чем с Lock
-        ClassicAssert.Less(rwLockTime, lockTime, "ReaderWriterLock should be faster than Lock");
+        Assert.That(rwLockTime, Is.LessThan(lockTime), "ReaderWriterLock should be faster than Lock");
     }
 
-    private long MeasurePerformance()
+    private static long MeasurePerformance(SharedResourceBase sharedResource)
     {
         // Нужно реализовать тест производительности.
         // В многопоточном режиме нужно запустить:
@@ -46,8 +41,8 @@ public class SharedResourcePerformanceTests
             {
                 for (var j = 0; j < NumberOfIterations; j++)
                 {
-                    _sharedResource.Read();
-                    _sharedResource.ComputeFactorial(FactorialNumber);
+                    sharedResource.Read();
+                    sharedResource.ComputeFactorial(FactorialNumber);
                 }
             }))
             .ToArray();
@@ -58,8 +53,8 @@ public class SharedResourcePerformanceTests
             {
                 for (var j = 0; j < NumberOfIterations; j++)
                 {
-                    _sharedResource.Write($"Data {i}");
-                    _sharedResource.ComputeFactorial(FactorialNumber);
+                    sharedResource.Write($"Data {i}");
+                    sharedResource.ComputeFactorial(FactorialNumber);
                 }
             }))
             .ToArray();
