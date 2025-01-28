@@ -14,7 +14,7 @@ public class SharedResourcePerformanceTests
     private SharedResourceBase _sharedResource;
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
-    private const int NumberOfIterations = 10000;
+    private const int NumberOfIterations = 100;
     private const int FactorialNumber = 60; // Большое число для вычисления факториала
 
     [Test]
@@ -34,8 +34,8 @@ public class SharedResourcePerformanceTests
 
     private long MeasurePerformance()
     {
-        var readers = CreateThreads(Read, ReadersThreads);
-        var writers = CreateThreads(Write, WritersThreads);
+        var readers = CreateThreads(() => RepeatAction(NumberOfIterations, Read), ReadersThreads);
+        var writers = CreateThreads(() => RepeatAction(NumberOfIterations, Write), WritersThreads);
         var stopwatch = Stopwatch.StartNew();
         var threads = readers.Concat(writers)
             .ToArray();
@@ -53,21 +53,21 @@ public class SharedResourcePerformanceTests
         return Enumerable.Range(0, threadCount).Select(_ => new Thread(new ThreadStart(action)));
     }
 
+    private void RepeatAction(int iterations, Action action)
+    {
+        for (var i = 0; i < iterations; i++)
+            action();
+    }
+    
     private void Read()
     {
-        for (var i = 0; i < NumberOfIterations; i++)
-        {
-            _sharedResource.Read();
-            _sharedResource.ComputeFactorial(FactorialNumber);
-        }
+        _sharedResource.Read();
+        _sharedResource.ComputeFactorial(FactorialNumber);
     }
 
     private void Write()
     {
-        for (var i = 0; i < NumberOfIterations; i++)
-        {
-            _sharedResource.Write("Данные ");
-            _sharedResource.ComputeFactorial(FactorialNumber);
-        }
+        _sharedResource.Write("Данные ");
+        _sharedResource.ComputeFactorial(FactorialNumber);
     }
 }

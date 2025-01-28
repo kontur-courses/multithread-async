@@ -9,14 +9,14 @@ public class SharedResourceRwLock : SharedResourceBase
     public override void Write(string data)
     {
         _rwLock.EnterWriteLock();
-        Resource.Append(data);
+        Resource = data;
         _rwLock.ExitWriteLock();
     }
 
     public override string Read()
     {
         _rwLock.EnterReadLock();
-        var result = Resource.ToString();
+        var result = Resource;
         _rwLock.ExitReadLock();
         
         return result;

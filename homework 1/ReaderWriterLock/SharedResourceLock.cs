@@ -5,13 +5,13 @@ public class SharedResourceLock : SharedResourceBase
     public override void Write(string data)
     {
         lock (Resource)
-            Resource.Append(data);
+            Resource = data;
     }
 
     public override string Read()
     {
         lock (Resource)
-            return Resource.ToString();
+            return Resource;
     }
 
     public override long ComputeFactorial(int number)
