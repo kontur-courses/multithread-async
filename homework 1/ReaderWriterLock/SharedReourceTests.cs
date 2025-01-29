@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using NUnit.Framework;
@@ -12,13 +12,15 @@ public class SharedResourceTests
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
     private SharedResourceBase _sharedResource;
-
+    
     [Test]
     public void TestConcurrentReadWrite()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной.
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
+        _sharedResource = new SharedResourceLock();
+        var allTreads = CreateTreads().ToArray();
+        
+        allTreads.ForEach(thread => thread.Start());
+        allTreads.ForEach(thread => thread.Join());
         
         ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
     }
@@ -26,10 +28,24 @@ public class SharedResourceTests
     [Test]
     public void TestConcurrentReadWriteRwLock()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
+        _sharedResource = new SharedResourceRwLock();
+        var allTreads = CreateTreads().ToArray();
+        
+        allTreads.ForEach(thread => thread.Start());
+        allTreads.ForEach(thread => thread.Join());
         
         ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+    }
+
+    private IEnumerable<Thread> CreateTreads()
+    {
+        var writingThreads = Enumerable
+            .Range(0, WritersThreads)
+            .Select(num => new Thread(() => _sharedResource.Write($"Data {num}")));
+        var readingThreads = Enumerable
+            .Range(0, ReadersThreads)
+            .Select(_ => new Thread(() => _sharedResource.Read()));
+        
+        return writingThreads.Concat(readingThreads);
     }
 }
