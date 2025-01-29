@@ -2,7 +2,7 @@ namespace ReaderWriterLock;
 
 public class SharedResourceLock : SharedResourceBase
 {
-    private string _localData;
+    private string _localData = string.Empty;
     private readonly object _locker = new();
 
     public override void Write(string data)

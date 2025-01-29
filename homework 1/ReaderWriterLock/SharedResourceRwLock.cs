@@ -4,7 +4,7 @@ namespace ReaderWriterLock;
 
 public class SharedResourceRwLock : SharedResourceBase
 {
-    private string _localData;
+    private string _localData = string.Empty;
     private readonly ReaderWriterLockSlim _rwLock = new();
 
     public override void Write(string data)
