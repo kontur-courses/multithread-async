@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 
@@ -10,7 +11,7 @@ namespace ReaderWriterLock;
 [TestFixture]
 public class SharedResourcePerformanceTests
 {
-    private SharedResourceBase _sharedResource;
+    private SharedResourceBase sharedResource;
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
     private const int NumberOfIterations = 10000;
@@ -19,25 +20,49 @@ public class SharedResourcePerformanceTests
     [Test]
     public void TestLockPerformance()
     {
-        _sharedResource = new SharedResourceLock();
-        long lockTime = MeasurePerformance();
+        sharedResource = new SharedResourceLock();
+        var lockTime = MeasurePerformance();
         Console.WriteLine($"Lock time taken: {lockTime} ms");
 
-        _sharedResource = new SharedResourceRwLock();
-        long rwLockTime = MeasurePerformance();
+        sharedResource = new SharedResourceRwLock();
+        var rwLockTime = MeasurePerformance();
         Console.WriteLine($"ReaderWriterLock time taken: {rwLockTime} ms");
-
-        // Проверка, что время выполнения с ReaderWriterLock меньше, чем с Lock
+        
         ClassicAssert.Less(rwLockTime, lockTime, "ReaderWriterLock should be faster than Lock");
     }
 
     private long MeasurePerformance()
     {
-        // Нужно реализовать тест производительности.
-        // В многопоточном режиме нужно запустить:
-        // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
-        // - Запись значений в количестве WritersThreads записывающих потоков
-        // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
-        throw new NotImplementedException();
+        var stopwatch = Stopwatch.StartNew();
+        var tasks = new List<Task>();
+        var random = new Random();
+        
+        for (int i = 0; i < WritersThreads; i++)
+        {
+            tasks.Add(Task.Run(() =>
+            {
+                for (int j = 0; j < NumberOfIterations; j++)
+                {
+                    sharedResource.Write($"Data {random.Next()}");
+                    sharedResource.ComputeFactorial(FactorialNumber);
+                }
+            }));
+        }
+        
+        for (int i = 0; i < ReadersThreads; i++)
+        {
+            tasks.Add(Task.Run(() =>
+            {
+                for (int j = 0; j < NumberOfIterations; j++)
+                {
+                    sharedResource.Read();
+                    sharedResource.ComputeFactorial(FactorialNumber);
+                }
+            }));
+        }
+
+        Task.WaitAll(tasks.ToArray());
+        stopwatch.Stop();
+        return stopwatch.ElapsedMilliseconds;
     }
 }
