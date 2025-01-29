@@ -1,21 +1,18 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 namespace ReaderWriterLock;
 
 [TestFixture]
 public class SharedResourcePerformanceTests
 {
-    private SharedResourceBase _sharedResource;
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
     private const int NumberOfIterations = 10000;
-    private const int FactorialNumber = 60; // Большое число для вычисления факториала
+    private const int FactorialNumber = 100; // Большое число для вычисления факториала
 
     [Test]
     public void TestLockPerformance()
@@ -28,7 +25,6 @@ public class SharedResourcePerformanceTests
 
         // Проверка, что время выполнения с ReaderWriterLock меньше, чем с Lock
         Assert.That(rwLockTime, Is.LessThan(lockTime), "ReaderWriterLock should be faster than Lock");
-        //ClassicAssert.Less(rwLockTime, lockTime, "ReaderWriterLock should be faster than Lock");
     }
 
     private long MeasurePerformance(SharedResourceBase sharedResource)
