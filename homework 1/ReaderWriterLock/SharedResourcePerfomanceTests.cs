@@ -1,7 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 
@@ -10,34 +9,31 @@ namespace ReaderWriterLock;
 [TestFixture]
 public class SharedResourcePerformanceTests
 {
-    private SharedResourceBase _sharedResource;
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
-    private const int NumberOfIterations = 10000;
-    private const int FactorialNumber = 60; // Большое число для вычисления факториала
+    private const int FactorialNumber = 200;
 
     [Test]
     public void TestLockPerformance()
     {
-        _sharedResource = new SharedResourceLock();
-        long lockTime = MeasurePerformance();
-        Console.WriteLine($"Lock time taken: {lockTime} ms");
+        var lockResource = new SharedResourceLock();
+        var rwLockResource = new SharedResourceRwLock();
 
-        _sharedResource = new SharedResourceRwLock();
-        long rwLockTime = MeasurePerformance();
-        Console.WriteLine($"ReaderWriterLock time taken: {rwLockTime} ms");
+        long lockTime = MeasurePerformance(lockResource);
+        long rwLockTime = MeasurePerformance(rwLockResource);
 
-        // Проверка, что время выполнения с ReaderWriterLock меньше, чем с Lock
+        Console.WriteLine($"Lock time: {lockTime} ms");
+        Console.WriteLine($"ReaderWriterLock time: {rwLockTime} ms");
+
         ClassicAssert.Less(rwLockTime, lockTime, "ReaderWriterLock should be faster than Lock");
     }
 
-    private long MeasurePerformance()
+    private long MeasurePerformance(SharedResourceBase resource)
     {
-        // Нужно реализовать тест производительности.
-        // В многопоточном режиме нужно запустить:
-        // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
-        // - Запись значений в количестве WritersThreads записывающих потоков
-        // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
-        throw new NotImplementedException();
+        var sw = Stopwatch.StartNew();
+        Parallel.For(0, WritersThreads, i => resource.Write($"Data {i}"));
+        Parallel.For(0, ReadersThreads, _ => resource.ComputeFactorial(FactorialNumber));
+        sw.Stop();
+        return sw.ElapsedMilliseconds;
     }
 }
