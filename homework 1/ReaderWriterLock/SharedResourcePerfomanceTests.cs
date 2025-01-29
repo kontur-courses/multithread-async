@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
@@ -19,11 +19,11 @@ public class SharedResourcePerformanceTests
     [Test]
     public void TestLockPerformance()
     {
-        _sharedResource = new SharedResourceLock();
+        _sharedResource = new SharedResourceLock() { FactorialNumberForLoadImitation = FactorialNumber};
         long lockTime = MeasurePerformance();
         Console.WriteLine($"Lock time taken: {lockTime} ms");
 
-        _sharedResource = new SharedResourceRwLock();
+        _sharedResource = new SharedResourceRwLock() { FactorialNumberForLoadImitation = FactorialNumber };
         long rwLockTime = MeasurePerformance();
         Console.WriteLine($"ReaderWriterLock time taken: {rwLockTime} ms");
 
@@ -31,13 +31,49 @@ public class SharedResourcePerformanceTests
         ClassicAssert.Less(rwLockTime, lockTime, "ReaderWriterLock should be faster than Lock");
     }
 
+    CountdownEvent countdown = new CountdownEvent(WritersThreads + ReadersThreads);
+
     private long MeasurePerformance()
     {
-        // Нужно реализовать тест производительности.
-        // В многопоточном режиме нужно запустить:
-        // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
-        // - Запись значений в количестве WritersThreads записывающих потоков
-        // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
-        throw new NotImplementedException();
+        var timer = new Stopwatch();
+        var resultTime = 0L;
+        
+        var rnd = new Random();
+        var valueForWrite = rnd.GetRandomString(1, 5);
+
+        Enumerable.Range(0, NumberOfIterations).ForEach(_ =>
+        {
+            countdown = new CountdownEvent(WritersThreads + ReadersThreads);
+            var writers = new int[WritersThreads];
+            var readers = new int[ReadersThreads].Select(x => 1);
+
+            var tasks = writers.Concat(readers).ToArray();
+
+            timer = Stopwatch.StartNew();
+            foreach (var task in tasks)
+            {
+                if (task == 0)
+                    ThreadPool.QueueUserWorkItem((cb) => WriteWithFactorial(valueForWrite));
+                else
+                    ThreadPool.QueueUserWorkItem((cb) => ReadWithFactorial());
+            }
+
+            countdown.Wait();
+            timer.Stop();
+            resultTime += timer.ElapsedMilliseconds;
+        });
+        return resultTime;
+    }
+
+    private void ReadWithFactorial()
+    {
+        _sharedResource.Read(true);
+        countdown.Signal();
+    }
+
+    private void WriteWithFactorial(string data)
+    {
+        _sharedResource.Write(data, 0, true);
+        countdown.Signal();
     }
 }
