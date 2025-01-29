@@ -11,7 +11,6 @@ public class SharedResourceTests
 {
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
-    private const int NumberOfIterations = 10000;
     private SharedResourceBase _sharedResource;
     private CountdownEvent countdown;
     private string[] valuesForWrite;
