@@ -22,8 +22,19 @@ public class SharedResourceLock : SharedResourceBase
         }
     }
 
-    public override long ComputeFactorial(int number)
+    public override long ComputeFactorialRead(int number)
     {
-        return Factorial(number);
+        lock (_resource)
+        {
+            return Factorial(number);
+        }
+    }
+
+    public override long ComputeFactorialWrite(int number)
+    {
+        lock (_resource)
+        {
+            return Factorial(number);
+        }
     }
 }

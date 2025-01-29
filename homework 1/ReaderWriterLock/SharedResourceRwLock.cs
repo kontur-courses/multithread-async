@@ -35,8 +35,29 @@ public class SharedResourceRwLock : SharedResourceBase
         }
     }
 
-    public override long ComputeFactorial(int number)
+    public override long ComputeFactorialRead(int number)
     {
-        return Factorial(number);
+        try
+        {
+            _resourceLock.EnterReadLock();
+            return Factorial(number);
+        }
+        finally
+        {
+            _resourceLock.ExitReadLock();
+        }
+    }
+
+    public override long ComputeFactorialWrite(int number)
+    {
+        try
+        {
+            _resourceLock.EnterWriteLock();
+            return Factorial(number);
+        }
+        finally
+        {
+            _resourceLock.ExitWriteLock();
+        }
     }
 }
