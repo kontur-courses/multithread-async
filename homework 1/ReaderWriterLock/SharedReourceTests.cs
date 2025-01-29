@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using FluentAssertions;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 
@@ -11,25 +13,27 @@ public class SharedResourceTests
 {
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
-    private SharedResourceBase _sharedResource;
 
     [Test]
-    public void TestConcurrentReadWrite()
-    {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной.
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
-        
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
-    }
+    public void TestConcurrentReadWrite() => ConcurrentReadWriteTest(new SharedResourceLock());
     
     [Test]
-    public void TestConcurrentReadWriteRwLock()
+    public void TestConcurrentReadWriteRwLock() => ConcurrentReadWriteTest(new SharedResourceRwLock());
+
+    private static void ConcurrentReadWriteTest(SharedResourceBase sharedResource)
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
+        var writers = CreateThreads(WritersThreads, i => sharedResource.Write($"Data {i}"));
+        var readers = CreateThreads(ReadersThreads, _ => sharedResource.Read());
         
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        writers.ForEach(writer => writer.Start());
+        readers.ForEach(reader => reader.Start());
+        
+        writers.ForEach(writer => writer.Join());
+        readers.ForEach(writer => writer.Join());
+
+        sharedResource.Read().Should().Be($"Data {WritersThreads - 1}");
     }
+
+    private static List<Thread> CreateThreads(int count, Action<int> action)
+        => Enumerable.Range(0, count).Select(i => new Thread(() => action(i))).ToList();
 }
