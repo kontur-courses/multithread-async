@@ -17,7 +17,10 @@ public class SharedResourceRwLock : SharedResourceBase
 
     public override string Read()
     {
-        return _sharedResource;
+        using (_rwLock.ReadLock())
+        {
+            return _sharedResource;
+        }
     }
 
     public override long ComputeFactorial(int number)
