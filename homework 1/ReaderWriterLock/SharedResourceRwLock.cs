@@ -4,31 +4,27 @@ namespace ReaderWriterLock;
 
 public class SharedResourceRwLock : SharedResourceBase
 {
-    private readonly ReaderWriterLockSlim _rwLock = new();
+    private readonly RwLockUtil _rwLock = new();
     private string _sharedResource;
     
     public override void Write(string data)
     {
-        _rwLock.EnterWriteLock();
-        _sharedResource = data;
-        _rwLock.ExitWriteLock();
+        using (_rwLock.WriteLock())
+        {
+            _sharedResource = data;
+        }
     }
 
     public override string Read()
     {
-        _rwLock.EnterReadLock();
-        var result = _sharedResource;
-        _rwLock.ExitReadLock();
-        
-        return result;
+        return _sharedResource;
     }
 
     public override long ComputeFactorial(int number)
     {
-        _rwLock.EnterReadLock();
-        var result = Factorial(number);
-        _rwLock.ExitReadLock();
-
-        return result;
+        using (_rwLock.ReadLock())
+        {
+            return Factorial(number);
+        }
     }
 }
