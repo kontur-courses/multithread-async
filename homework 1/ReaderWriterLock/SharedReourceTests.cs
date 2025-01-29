@@ -16,7 +16,7 @@ public class SharedResourceTests
 
     [Test]
     public void TestConcurrentReadWrite() => ConcurrentReadWriteTest(new SharedResourceLock());
-    
+
     [Test]
     public void TestConcurrentReadWriteRwLock() => ConcurrentReadWriteTest(new SharedResourceRwLock());
 
@@ -24,12 +24,12 @@ public class SharedResourceTests
     {
         var writers = CreateThreads(WritersThreads, i => sharedResource.Write($"Data {i}"));
         var readers = CreateThreads(ReadersThreads, _ => sharedResource.Read());
-        
+
         writers.ForEach(writer => writer.Start());
         readers.ForEach(reader => reader.Start());
-        
+
         writers.ForEach(writer => writer.Join());
-        readers.ForEach(writer => writer.Join());
+        readers.ForEach(reader => reader.Join());
 
         sharedResource.Read().Should().Be($"Data {WritersThreads - 1}");
     }
