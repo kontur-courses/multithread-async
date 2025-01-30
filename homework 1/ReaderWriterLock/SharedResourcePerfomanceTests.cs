@@ -33,11 +33,38 @@ public class SharedResourcePerformanceTests
 
     private long MeasurePerformance()
     {
-        // Нужно реализовать тест производительности.
-        // В многопоточном режиме нужно запустить:
-        // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
-        // - Запись значений в количестве WritersThreads записывающих потоков
-        // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
-        throw new NotImplementedException();
+        var threads = new List<Thread>();
+        threads.AddRange(
+            CreateThreads(ReadersThreads, NumberOfIterations, () => _sharedResource.Read()));
+        threads.AddRange(
+            CreateThreads(WritersThreads, NumberOfIterations, () => _sharedResource.Write("Data")));
+
+        var stopwatch = Stopwatch.StartNew();
+        threads.ForEach(thread => thread.Start());
+        threads.ForEach(thread => thread.Join());
+        stopwatch.Stop();
+
+        return stopwatch.ElapsedMilliseconds;
+    }
+
+    private List<Thread> CreateThreads(int threadCount, int numberOfIterations, Action action)
+    {
+        var threads = new List<Thread>(threadCount);
+
+        for (int i = 0; i < threadCount; i++)
+        {
+            var thread = new Thread(_ =>
+            {
+                for (int j = 0; j < numberOfIterations; j++)
+                {
+                    action.Invoke();
+                    _sharedResource.ComputeFactorial(FactorialNumber);
+                }
+            });
+
+            threads.Add(thread);
+        }
+
+        return threads;
     }
 }
