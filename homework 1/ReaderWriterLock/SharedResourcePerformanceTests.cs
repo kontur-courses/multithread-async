@@ -44,8 +44,8 @@ public class SharedResourcePerformanceTests
         
         var sw = Stopwatch.StartNew();
         
-        threads.AsParallel().ForAll(t => t.Start());
-        threads.AsParallel().ForAll(t => t.Join());
+        threads.ForEach(t => t.Start());
+        threads.ForEach(t => t.Join());
 
         sw.Stop();
         

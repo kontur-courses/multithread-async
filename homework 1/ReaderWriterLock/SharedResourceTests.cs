@@ -54,8 +54,8 @@ public class SharedResourceTests
 
     private static void ExecuteThreadsAsParallel(List<Thread> threads)
     {
-        threads.AsParallel().ForAll(t => t.Start());
-        threads.AsParallel().ForAll(t => t.Join());
+        threads.ForEach(t => t.Start());
+        threads.ForEach(t => t.Join());
     }
     
 }
