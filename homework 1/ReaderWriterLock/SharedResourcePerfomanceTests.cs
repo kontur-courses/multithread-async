@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
@@ -38,6 +39,35 @@ public class SharedResourcePerformanceTests
         // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
         // - Запись значений в количестве WritersThreads записывающих потоков
         // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
-        throw new NotImplementedException();
+        var readThreads = CreateListThreads(ReadersThreads, () => _sharedResource.Read());
+        var writeThreads = CreateListThreads(WritersThreads, () => _sharedResource.Write("Data"));
+
+        var allThreads = writeThreads.Concat(readThreads);
+
+        var stopwatch = Stopwatch.StartNew();
+        allThreads.ForEach(x => x.Start());
+        allThreads.ForEach(x => x.Join());
+        stopwatch.Stop();
+
+        return stopwatch.ElapsedMilliseconds;
+    }
+
+    private List<Thread> CreateListThreads(int threadCount, Action threadAction)
+    {
+        var threads = new List<Thread>();
+        for (var i = 0; i < threadCount; i++)
+        {
+            var thread = new Thread(_ =>
+            {
+                for (var j = 0; j < FactorialNumber; j++)
+                {
+                    threadAction.Invoke();
+                    _sharedResource.ComputeFactorial(FactorialNumber);
+                }
+            });
+            threads.Add(thread);
+        }
+
+        return threads;
     }
 }

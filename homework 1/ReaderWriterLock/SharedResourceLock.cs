@@ -7,7 +7,7 @@ public class SharedResourceLock : SharedResourceBase
     public override void Write(string data)
     {
         lock (lockingObject){
-            eternalData += data;
+            eternalData = data;
         }
     }
 

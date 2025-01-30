@@ -10,7 +10,7 @@ public class SharedResourceRwLock : SharedResourceBase
     public override void Write(string data)
     {
         lockingObject.EnterWriteLock();
-        eternalData += data;
+        eternalData = data;
         lockingObject.ExitWriteLock();
     }
 
