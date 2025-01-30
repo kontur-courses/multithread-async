@@ -13,7 +13,7 @@ public class SharedResourcePerformanceTests
     private SharedResourceBase _sharedResource;
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
-    private const int NumberOfIterations = 100;
+    private const int NumberOfIterations = 1000;
     private const int FactorialNumber = 60;
 
     [Test]
@@ -22,7 +22,7 @@ public class SharedResourcePerformanceTests
         _sharedResource = new SharedResourceLock();
         var lockTime = MeasurePerformance();
         Console.WriteLine($"Lock time taken: {lockTime} ms");
-
+        
         _sharedResource = new SharedResourceRwLock();
         var rwLockTime = MeasurePerformance();
         Console.WriteLine($"ReaderWriterLock time taken: {rwLockTime} ms");
