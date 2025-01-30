@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
+using FluentAssertions;
 
 namespace ReaderWriterLock;
 
@@ -13,23 +15,41 @@ public class SharedResourceTests
     private const int ReadersThreads = 1000;
     private SharedResourceBase _sharedResource;
 
+    private bool SharedResourcesContainsLastThreadData(SharedResourceBase sharedResource)
+    {
+        _sharedResource = sharedResource;
+        var writeThreads = new List<Thread>();
+        var readThreads = new List<Thread>();
+        
+        for (var i = 0; i < WritersThreads; i++)
+        {
+            var thread = new Thread(() => _sharedResource.Write($"Data {i}"));
+            writeThreads.Add(thread);
+            thread.Start();
+        }
+        
+        for (var i = 0; i < ReadersThreads; i++)
+        {
+            var thread = new Thread(() => _sharedResource.Read());
+            readThreads.Add(thread);
+            thread.Start();
+        }
+        
+        writeThreads.ForEach(t => t.Join());
+        readThreads.ForEach(t => t.Join());
+
+        return ($"Data {WritersThreads}".Equals(_sharedResource.Read()));
+    }
+
     [Test]
     public void TestConcurrentReadWrite()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной.
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
-        
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        SharedResourcesContainsLastThreadData(new SharedResourceLock()).Should().BeTrue();
     }
     
     [Test]
     public void TestConcurrentReadWriteRwLock()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
-        
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        SharedResourcesContainsLastThreadData(new SharedResourceRwLock()).Should().BeTrue();
     }
 }

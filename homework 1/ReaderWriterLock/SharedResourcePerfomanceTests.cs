@@ -38,6 +38,45 @@ public class SharedResourcePerformanceTests
         // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
         // - Запись значений в количестве WritersThreads записывающих потоков
         // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
-        throw new NotImplementedException();
+        var timer = Stopwatch.StartNew();
+        var writeThreads = new List<Thread>();
+        var readThreads = new List<Thread>();
+
+        for (var i = 0; i < WritersThreads; i++)
+        {
+            var thread = new Thread(RepeatWriting);
+            writeThreads.Add(thread);
+            thread.Start();
+        }
+        writeThreads.ForEach(t => t.Join());
+
+        for (var i = 0; i < ReadersThreads; i++)
+        {
+            var thread = new Thread(RepeatReading);
+            readThreads.Add(thread);
+            thread.Start();
+        }
+        readThreads.ForEach(t => t.Join());
+        
+        timer.Stop();
+        return timer.ElapsedMilliseconds;
+    }
+
+    private void RepeatWriting()
+    {
+        for (var i = 0; i < NumberOfIterations; i++)
+        {
+            _sharedResource.Write($"Data {i}");
+            _sharedResource.ComputeFactorial(FactorialNumber);
+        }
+    }
+
+    private void RepeatReading()
+    {
+        for (var i = 0; i < NumberOfIterations; i++)
+        {
+            _sharedResource.Read();
+            _sharedResource.ComputeFactorial(FactorialNumber);
+        }
     }
 }
