@@ -10,21 +10,39 @@ public class SharedResourceRwLock : SharedResourceBase
     public override void Write(string data)
     {
         rwLock.EnterWriteLock();
-        this.data = data;
-        rwLock.ExitWriteLock();
+        try
+        {
+            this.data = data;
+        }
+        finally
+        {
+            rwLock.ExitWriteLock();
+        }
     }
 
     public override string Read()
     {
         rwLock.EnterReadLock();
-        var result = data;
-        rwLock.ExitReadLock();
-        
-        return result;
+        try
+        {
+            return data;
+        }
+        finally
+        {
+            rwLock.ExitReadLock();
+        }
     }
 
     public override long ComputeFactorial(int number)
     {
-        return Factorial(number);
+        rwLock.EnterReadLock();
+        try
+        {
+            return Factorial(number);
+        }
+        finally
+        {
+            rwLock.ExitReadLock();
+        }
     }
 }
