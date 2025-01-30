@@ -9,23 +9,9 @@ public class SharedResourceRwLock : SharedResourceBase
 
     public override void Write(string data)
     {
-        rwLock.EnterUpgradeableReadLock();
-        try
-        {
-            rwLock.EnterWriteLock();
-            try
-            {
-                this.data = data;
-            }
-            finally
-            {
-                rwLock.ExitWriteLock();
-            }
-        }
-        finally
-        {
-            rwLock.ExitUpgradeableReadLock();
-        }
+        rwLock.EnterWriteLock();
+        this.data = data;
+        rwLock.ExitWriteLock();
     }
 
     public override string Read()
