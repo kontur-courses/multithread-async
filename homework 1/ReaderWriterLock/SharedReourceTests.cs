@@ -19,7 +19,7 @@ public class SharedResourceTests
     public void TestConcurrentReadWrite()
     {
         _sharedResource = new SharedResourceLock();
-        var options = new ParallelOptions() { MaxDegreeOfParallelism = 4 };
+        var options = new ParallelOptions() { MaxDegreeOfParallelism = WritersThreads };
 
         var writeTask = new Task(() =>
         {
@@ -33,7 +33,7 @@ public class SharedResourceTests
 
         var readTask = new Task(() =>
         {
-            Parallel.For(0, ReadersThreads, options, (i) =>
+            Parallel.For(0, ReadersThreads, new ParallelOptions() { MaxDegreeOfParallelism = ReadersThreads }, (i) =>
             {
                 _sharedResource.Read();
                 Thread.Sleep(10);
@@ -54,11 +54,10 @@ public class SharedResourceTests
     public void TestConcurrentReadWriteRwLock()
     {
         _sharedResourceRwLock = new SharedResourceRwLock();
-        var options = new ParallelOptions() { MaxDegreeOfParallelism = 4};
 
         var writeTask = new Task(() =>
         {
-            Parallel.For(0, WritersThreads, options, i =>
+            Parallel.For(0, WritersThreads, new ParallelOptions() { MaxDegreeOfParallelism = WritersThreads }, i =>
             {
                 _sharedResourceRwLock.Write($"Data {i}");
 
@@ -68,7 +67,7 @@ public class SharedResourceTests
 
         var readTask = new Task(() =>
         {
-            Parallel.For(0, ReadersThreads, options, (i) =>
+            Parallel.For(0, ReadersThreads, new ParallelOptions() { MaxDegreeOfParallelism = ReadersThreads }, (i) =>
             {
                 _sharedResourceRwLock.Read();
                 Thread.Sleep(10);

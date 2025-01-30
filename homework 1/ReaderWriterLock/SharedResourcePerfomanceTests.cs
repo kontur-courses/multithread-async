@@ -45,10 +45,10 @@ public class SharedResourcePerformanceTests
     private long MeasurePerformance(SharedResourceBase sharedResourceLock, int numberOfIterations)
     {
         var stopWatch = new Stopwatch();
-        var options = new ParallelOptions() { MaxDegreeOfParallelism = 4 };
+
         var writeTask = new Task(() =>
         {
-            Parallel.For(0, WritersThreads, options, i =>
+            Parallel.For(0, WritersThreads, new ParallelOptions() { MaxDegreeOfParallelism = WritersThreads }, i =>
             {
                 // - Запись значений в количестве WritersThreads записывающих потоков
                 sharedResourceLock.Write($"Data {i}");
@@ -59,7 +59,7 @@ public class SharedResourcePerformanceTests
         var readTask = new Task(() =>
         {
             // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
-            Parallel.For(0, ReadersThreads, options, (i) =>
+            Parallel.For(0, ReadersThreads, new ParallelOptions() { MaxDegreeOfParallelism = ReadersThreads }, (i) =>
             {
                 sharedResourceLock.Read();
                 sharedResourceLock.ComputeFactorial(FactorialNumber + numberOfIterations);
