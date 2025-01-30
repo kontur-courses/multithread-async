@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Threading;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 
@@ -15,6 +13,8 @@ public class SharedResourcePerformanceTests
     private const int ReadersThreads = 1000;
     private const int NumberOfIterations = 10000;
     private const int FactorialNumber = 60; // Большое число для вычисления факториала
+
+    private readonly IdenticalThreadsStarter _threadsStarter = new();
 
     [Test]
     public void TestLockPerformance()
@@ -33,11 +33,33 @@ public class SharedResourcePerformanceTests
 
     private long MeasurePerformance()
     {
-        // Нужно реализовать тест производительности.
-        // В многопоточном режиме нужно запустить:
-        // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
-        // - Запись значений в количестве WritersThreads записывающих потоков
-        // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
-        throw new NotImplementedException();
+        var stopwatch = Stopwatch.StartNew();
+
+        var readCountdown = _threadsStarter.Start(_ => SimulateRead(), ReadersThreads);
+        var writeCountdown = _threadsStarter.Start(_ => SimulateWrite(), WritersThreads);
+
+        readCountdown.Wait();
+        writeCountdown.Wait();
+
+        stopwatch.Stop();
+        return stopwatch.ElapsedMilliseconds;
+    }
+
+    private void SimulateRead()
+    {
+        for (var i = 0; i < NumberOfIterations; i++)
+        {
+            _sharedResource.ComputeFactorial(FactorialNumber);
+            _sharedResource.Read();
+        }
+    }
+
+    private void SimulateWrite()
+    {
+        for (var i = 0; i < NumberOfIterations; i++)
+        {
+            _sharedResource.ComputeFactorial(FactorialNumber);
+            _sharedResource.Write("something");
+        }
     }
 }
