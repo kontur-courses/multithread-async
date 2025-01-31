@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 
 namespace ReaderWriterLock;
@@ -10,23 +11,39 @@ public class SharedResourceRwLock : SharedResourceBase
     public override void Write(string data)
     {
         _locker.EnterWriteLock();
-        _localData = data;
-        _locker.ExitWriteLock();
+        try
+        {
+            _localData = data;
+        }
+        finally
+        {
+            _locker.ExitWriteLock();
+        }
     }
 
     public override string Read()
     {
         _locker.EnterReadLock();
-        var result = _localData;
-        _locker.ExitReadLock();
-        return result;
+        try
+        {
+            return _localData;
+        }
+        finally
+        {
+            _locker.ExitReadLock();
+        }
     }
 
     public override long ComputeFactorial(int number)
     {
         _locker.EnterReadLock();
-        var result = Factorial(number);
-        _locker.ExitReadLock();
-        return result;
+        try
+        {
+            return Factorial(number);
+        }
+        finally
+        {
+            _locker.ExitReadLock();
+        }
     }
 }
