@@ -14,7 +14,7 @@ public class SharedResourcePerformanceTests
     private SharedResourceBase _sharedResource;
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
-    private const int NumberOfIterations = 100;
+    private const int NumberOfIterations = 10000;
     private const int FactorialNumber = 60; // Большое число для вычисления факториала
 
     [Test]
