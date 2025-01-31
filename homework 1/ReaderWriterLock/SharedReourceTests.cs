@@ -1,8 +1,7 @@
-using System;
 using System.Linq;
 using System.Threading;
+using FluentAssertions;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 namespace ReaderWriterLock;
 
@@ -11,25 +10,29 @@ public class SharedResourceTests
 {
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
-    private SharedResourceBase _sharedResource;
 
     [Test]
     public void TestConcurrentReadWrite()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной.
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
-        
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        Check(new SharedResourceLock());
     }
     
     [Test]
     public void TestConcurrentReadWriteRwLock()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
+        Check(new SharedResourceRwLock());
+    }
+
+    private void Check(SharedResourceBase sharedResource)
+    {
+        var writers = Enumerable.Range(0, WritersThreads)
+            .Select(number => new Thread(() => sharedResource.Write($"{number}")));
+        var readers =  Enumerable.Range(0, ReadersThreads)
+            .Select(number => new Thread(() => sharedResource.Read()));
+        var threads = writers.Concat(readers).ToArray();
+        threads.ForEach(thread => thread.Start());
+        threads.ForEach(thread => thread.Join());
         
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        sharedResource.Read().Should().Be($"{WritersThreads - 1}");
     }
 }
