@@ -10,23 +10,39 @@ public class SharedResourceRwLock : SharedResourceBase
     public override void Write(string data)
     {
         locker.EnterWriteLock();
-        source = data;
-        locker.ExitWriteLock();
+        try
+        {
+            source = data;
+        }
+        finally
+        {
+            locker.ExitWriteLock();
+        }
     }
 
     public override string Read()
     {
         locker.EnterReadLock();
-        var result = source;
-        locker.ExitReadLock();
-        return result;
+        try
+        {
+            return source;
+        }
+        finally
+        {
+            locker.ExitReadLock();
+        }
     }
 
     public override long ComputeFactorial(int number)
     {
         locker.EnterReadLock();
-        var result = Factorial(number);
-        locker.ExitReadLock();
-        return result;
+        try
+        {
+            return Factorial(number);
+        }
+        finally
+        {
+            locker.ExitReadLock();
+        }
     }
 }
