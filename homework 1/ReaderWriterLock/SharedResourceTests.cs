@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using FluentAssertions;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 namespace ReaderWriterLock;
 
@@ -13,6 +11,7 @@ public class SharedResourceTests
 {
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
+    private static readonly ManualResetEvent Event = new(false);
 
     [Test]
     public void TestConcurrentReadWrite() =>
@@ -22,7 +21,7 @@ public class SharedResourceTests
     public void TestConcurrentReadWriteRwLock() =>
         TestConcurrent(new SharedResourceRwLock());
 
-    private void TestConcurrent(SharedResourceBase sharedResource)
+    private static void TestConcurrent(SharedResourceBase sharedResource)
     {
         var data = Enumerable.Range(0, WritersThreads)
             .Select(x => $"Thread {x} data. ")
@@ -40,16 +39,26 @@ public class SharedResourceTests
     }
 
     private static IEnumerable<Thread> InitializeWriters(SharedResourceBase sharedResource, IEnumerable<string> data) =>
-        data.Select(text => new Thread(() => sharedResource.Write(text)));
+        data
+            .Select(text => new Thread(() =>
+            {
+                Event.WaitOne();
+                sharedResource.Write(text);
+            }));
 
     private static IEnumerable<Thread> InitializeReaders(SharedResourceBase sharedResource) =>
         Enumerable
             .Range(0, ReadersThreads)
-            .Select(_ => new Thread(() => sharedResource.Read()));
+            .Select(_ => new Thread(() =>
+            {
+                Event.WaitOne();
+                sharedResource.Read();
+            }));
 
     private static void ExecuteThreads(Thread[] threads)
     {
-        threads.AsParallel().ForAll(t => t.Start());
-        threads.AsParallel().ForAll(t => t.Join());
+        threads.ForEach(t => t.Start());
+        Event.Set();
+        threads.ForEach(t => t.Join());
     }
 }

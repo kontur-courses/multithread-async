@@ -1,22 +1,21 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using FluentAssertions;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 namespace ReaderWriterLock;
 
 [TestFixture]
 public class SharedResourcePerformanceTests
 {
-    private SharedResourceBase _sharedResource;
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
     private const int NumberOfIterations = 10000;
     private const int FactorialNumber = 500;
+    private static readonly ManualResetEvent Event = new(false);
+    private SharedResourceBase _sharedResource;
 
     [Test]
     public void TestLockPerformance()
@@ -25,6 +24,7 @@ public class SharedResourcePerformanceTests
         var lockTime = MeasurePerformance();
         Console.WriteLine($"Lock time taken: {lockTime} ms");
 
+        Event.Reset();
         _sharedResource = new SharedResourceRwLock();
         var rwLockTime = MeasurePerformance();
         Console.WriteLine($"ReaderWriterLock time taken: {rwLockTime} ms");
@@ -39,8 +39,9 @@ public class SharedResourcePerformanceTests
         var threads = writers.Concat(readers).ToArray();
         var sw = Stopwatch.StartNew();
 
-        threads.AsParallel().ForAll(t => t.Start());
-        threads.AsParallel().ForAll(t => t.Join());
+        threads.ForEach(t => t.Start());
+        Event.Set();
+        threads.ForEach(t => t.Join());
 
         sw.Stop();
         return sw.ElapsedMilliseconds;
@@ -48,6 +49,7 @@ public class SharedResourcePerformanceTests
 
     private void WriteData()
     {
+        Event.WaitOne();
         for (var i = 0; i < NumberOfIterations; i++)
         {
             _sharedResource.Write("Some data. ");
@@ -57,6 +59,7 @@ public class SharedResourcePerformanceTests
 
     private void ReadData()
     {
+        Event.WaitOne();
         for (var i = 0; i < NumberOfIterations; i++)
         {
             _sharedResource.Read();
