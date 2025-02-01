@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 
 namespace ReaderWriterLock;
@@ -9,15 +10,21 @@ public class SharedResourceRwLock : SharedResourceBase
     public override void Write(string data)
     {
         _rwLock.EnterWriteLock();
-        _sharedResource = data;
-        _rwLock.ExitWriteLock();
+        try
+        {
+            _sharedResource = data;
+        }
+        finally
+        {
+            _rwLock.ExitWriteLock();
+        }
     }
 
     public override string Read()
     {
+        _rwLock.EnterReadLock();
         try
         {
-            _rwLock.EnterReadLock();
             return _sharedResource;
         }
         finally
