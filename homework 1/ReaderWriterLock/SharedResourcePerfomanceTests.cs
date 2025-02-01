@@ -19,7 +19,9 @@ public class SharedResourcePerformanceTests
     [Test]
     public void TestLockPerformance()
     {
+
         _sharedResource = new SharedResourceLock() { FactorialNumberForLoadImitation = FactorialNumber};
+        long _ = MeasurePerformance();
         long lockTime = MeasurePerformance();
         Console.WriteLine($"Lock time taken: {lockTime} ms");
 
@@ -40,7 +42,8 @@ public class SharedResourcePerformanceTests
         
         var rnd = new Random();
         var valueForWrite = rnd.GetRandomString(1, 5);
-
+        ThreadPool.GetMinThreads(out var _, out var minIOC);
+        ThreadPool.SetMinThreads(ReadersThreads + WritersThreads, minIOC);
         Enumerable.Range(0, NumberOfIterations).ForEach(_ =>
         {
             countdown = new CountdownEvent(WritersThreads + ReadersThreads);

@@ -46,7 +46,8 @@ public class SharedResourceTests
         var readers = new int[ReadersThreads];
         var tasks = writers.Concat(readers).ToArray();
         new Random().Shuffle(tasks);
-
+        ThreadPool.GetMinThreads(out var _, out var minIOC);
+        ThreadPool.SetMinThreads(ReadersThreads + WritersThreads, minIOC);
         foreach (var i in tasks)
         {
             if (i > 0)
@@ -68,6 +69,7 @@ public class SharedResourceTests
             }
         }
         countdown.Wait();
+
         ClassicAssert.AreEqual(valuesForWrite[_sharedResource.LastWriterThreadIndex], _sharedResource.Read());
     }
 }
