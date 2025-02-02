@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
@@ -33,34 +34,24 @@ public class SharedResourcePerformanceTests
 
     private long MeasurePerformance()
     {
-        // Нужно реализовать тест производительности.
-        // В многопоточном режиме нужно запустить:
-        // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
-        // - Запись значений в количестве WritersThreads записывающих потоков
-        // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
         var timer = Stopwatch.StartNew();
-        var writeThreads = new List<Thread>();
-        var readThreads = new List<Thread>();
 
-        for (var i = 0; i < WritersThreads; i++)
-        {
-            var thread = new Thread(RepeatWriting);
-            writeThreads.Add(thread);
-            thread.Start();
-        }
-
-        for (var i = 0; i < ReadersThreads; i++)
-        {
-            var thread = new Thread(RepeatReading);
-            readThreads.Add(thread);
-            thread.Start();
-        }
-        
+        var writeThreads = CreateThreads(WritersThreads, RepeatWriting);
+        var readThreads = CreateThreads(ReadersThreads, RepeatReading);
+        writeThreads.ForEach(t => t.Start());
+        readThreads.ForEach(t => t.Start());
         writeThreads.ForEach(t => t.Join());
         readThreads.ForEach(t => t.Join());
         
         timer.Stop();
         return timer.ElapsedMilliseconds;
+    }
+
+    private static Thread[] CreateThreads(int count, Action action)
+    {
+        return Enumerable.Range(0,count)
+            .Select(_ => new Thread(_=> action.Invoke()))
+            .ToArray();
     }
 
     private void RepeatWriting()

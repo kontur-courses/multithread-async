@@ -18,26 +18,13 @@ public class SharedResourceTests
     private bool SharedResourcesContainsLastThreadData(SharedResourceBase sharedResource)
     {
         _sharedResource = sharedResource;
-        var writeThreads = new List<Thread>();
-        var readThreads = new List<Thread>();
-        
-        for (var i = 0; i < WritersThreads; i++)
-        {
-            var j = i;
-            var thread = new Thread(() => _sharedResource.Write($"Data {j}"));
-            writeThreads.Add(thread);
-            thread.Start();
-        }
-        
-        for (var i = 0; i < ReadersThreads; i++)
-        {
-            var thread = new Thread(() => _sharedResource.Read());
-            readThreads.Add(thread);
-            thread.Start();
-        }
-        
-        writeThreads.ForEach(t => t.Join());
-        readThreads.ForEach(t => t.Join());
+        var threads = Enumerable.Range(0, WritersThreads)
+            .Select(i => new Thread(() => _sharedResource.Write($"Data {i}")))
+            .Union(Enumerable.Range(0, ReadersThreads)
+                .Select(_ => new Thread(() => _sharedResource.Read())))
+            .ToArray();
+        threads.ForEach(t => t.Start());
+        threads.ForEach(t => t.Join());    
 
         return ($"Data {WritersThreads - 1}".Equals(_sharedResource.Read()));
     }
@@ -47,7 +34,7 @@ public class SharedResourceTests
     {
         SharedResourcesContainsLastThreadData(new SharedResourceLock()).Should().BeTrue();
     }
-    
+
     [Test]
     public void TestConcurrentReadWriteRwLock()
     {
