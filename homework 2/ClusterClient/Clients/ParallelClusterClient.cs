@@ -1,23 +1,52 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Net;
 using System.Threading.Tasks;
 using log4net;
 
-namespace ClusterClient.Clients
+namespace ClusterClient.Clients;
+
+public class ParallelClusterClient : ClusterClientBase
 {
-    public class ParallelClusterClient : ClusterClientBase
+    public ParallelClusterClient(string[] replicaAddresses) : base(replicaAddresses)
     {
-        public ParallelClusterClient(string[] replicaAddresses) : base(replicaAddresses)
-        {
-        }
-
-        public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));
     }
+
+    public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
+    {
+        var tasks = ReplicaAddresses.Select(async uri =>
+        {
+            try
+            {
+                var request = CreateRequest(uri + "?query=" + query);
+                Log.InfoFormat($"Sending request to {request.RequestUri}");
+                return await ProcessRequestAsync(request);
+            }
+            catch (WebException ex)
+            {
+                Log.WarnFormat($"Request to {uri} failed with {ex.Message}");
+                return null;
+            }
+        }).ToList();
+
+        var timeoutTask = Task.Delay(timeout);
+
+        while (tasks.Count > 0)
+        {
+            var completedTask = await Task.WhenAny(tasks.Append(timeoutTask));
+
+            if (completedTask == timeoutTask)
+                throw new TimeoutException();
+
+            tasks.Remove(completedTask as Task<string>);
+
+            var result = await (Task<string>)completedTask;
+            if (!string.IsNullOrEmpty(result))
+                return result;
+        }
+
+        throw new TimeoutException();
+    }
+
+    protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));
 }
