@@ -4,33 +4,39 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using ClusterClient.Extensions;
+using ClusterHistory.Interfaces;
 using log4net;
 
 namespace ClusterClient.Clients;
 
-public class SmartClusterClient(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
+public class SmartClusterClient : ClusterClientBase
 {
+    public SmartClusterClient(string[] replicaAddresses, IReplicaSendHistory replicaSendHistory)
+        : base(replicaAddresses, replicaSendHistory)
+    {
+    }
+
     public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout,
         CancellationToken cancellationToken = default)
     {
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var linkedToken = linkedCts.Token;
         var requestStopwatch = new Stopwatch();
         var replicaCount = ReplicaAddresses.Length;
         var tasks = new List<Task<string>>();
 
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var linkedToken = linkedCts.Token;
-
+        var addressesByOrder = ReplicaSendHistory.RetrieveAddressesInOrder(ReplicaAddresses);
         requestStopwatch.Start();
-        foreach (var replicaAddress in ReplicaAddresses)
+        foreach (var replicaAddress in addressesByOrder)
         {
+            var uri = CreateUri(replicaAddress, query);
+            var webRequest = CreateRequest(uri);
+
             var remainingTime = timeout - requestStopwatch.Elapsed;
             var actualTimeout = remainingTime / replicaCount;
 
-            var uri = BuildUri(replicaAddress, query);
-            var webRequest = CreateRequest(uri);
             Log.InfoFormat($"Processing {webRequest.RequestUri}");
             tasks.Add(ProcessRequestAsync(webRequest, linkedToken));
-
             var result = await ProcessItemRequestOrNullAsync(tasks, actualTimeout, cancellationToken);
             if (result != null)
             {

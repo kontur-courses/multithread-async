@@ -1,20 +1,28 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using ClusterHistory.Interfaces;
 using log4net;
 
 namespace ClusterClient.Clients;
 
-public class RandomClusterClient(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
+public class RandomClusterClient : ClusterClientBase
 {
     private readonly Random random = new();
 
-    public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout, CancellationToken cancellationToken = default)
+    public RandomClusterClient(string[] replicaAddresses, IReplicaSendHistory replicaSendHistory)
+        : base(replicaAddresses, replicaSendHistory)
+    {
+    }
+
+    public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout,
+        CancellationToken cancellationToken = default)
     {
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var linkedToken = linkedCts.Token;
-        var uri = ReplicaAddresses[random.Next(ReplicaAddresses.Length)];
-        var webRequest = CreateRequest(uri + "?query=" + query);
+        var replicaAddresses = ReplicaAddresses[random.Next(ReplicaAddresses.Length)];
+        var uri = CreateUri(replicaAddresses, query);
+        var webRequest = CreateRequest(uri);
         Log.InfoFormat($"Processing {webRequest.RequestUri}");
         var resultTask = ProcessRequestAsync(webRequest, linkedToken);
         await Task.WhenAny(resultTask, Task.Delay(timeout, linkedToken));

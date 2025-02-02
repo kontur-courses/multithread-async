@@ -3,25 +3,33 @@ using System.Diagnostics;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using ClusterHistory.Interfaces;
 using log4net;
 
 namespace ClusterClient.Clients;
 
-public class RoundRobinClusterClient(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
+public class RoundRobinClusterClient : ClusterClientBase
 {
+    public RoundRobinClusterClient(string[] replicaAddresses, IReplicaSendHistory replicaSendHistory)
+        : base(replicaAddresses, replicaSendHistory)
+    {
+    }
+
     public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout,
         CancellationToken cancellationToken = default)
     {
         var requestStopwatch = new Stopwatch();
         var replicaCount = ReplicaAddresses.Length;
+
+        var addressesByOrder = ReplicaSendHistory.RetrieveAddressesInOrder(ReplicaAddresses);
         requestStopwatch.Start();
-        foreach (var replicaAddress in ReplicaAddresses)
+        foreach (var replicaAddress in addressesByOrder)
         {
+            var uri = CreateUri(replicaAddress, query);
+            var webRequest = CreateRequest(uri);
+
             var remainingTime = timeout - requestStopwatch.Elapsed;
             var actualTimeout = remainingTime / replicaCount;
-
-            var uri = BuildUri(replicaAddress, query);
-            var webRequest = CreateRequest(uri);
 
             var result = await ProcessItemRequestOrNullAsync(webRequest, actualTimeout, cancellationToken);
             if (result != null)
