@@ -43,7 +43,7 @@ public class RoundRobinClusterClient : ClusterClientBase
                 break;
         }
 
-        throw new TimeoutException();
+        throw new TimeoutException($"All requests failed or timed out after {timeout.TotalMilliseconds} ms.");
     }
 
     protected override ILog Log => LogManager.GetLogger(typeof(RoundRobinClusterClient));

@@ -36,7 +36,7 @@ public class ParallelClusterClient : ClusterClientBase
             var completedTask = await Task.WhenAny(tasks.Append(timeoutTask));
 
             if (completedTask == timeoutTask)
-                throw new TimeoutException();
+                throw new TimeoutException("No successful response received from any replica.");
 
             tasks.Remove(completedTask as Task<string>);
 
@@ -45,7 +45,7 @@ public class ParallelClusterClient : ClusterClientBase
                 return result;
         }
 
-        throw new TimeoutException();
+        throw new TimeoutException($"All requests failed or timed out after {timeout.TotalMilliseconds} ms.");
     }
 
     protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));
