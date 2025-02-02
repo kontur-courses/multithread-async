@@ -48,7 +48,6 @@ public class SharedResourcePerformanceTests
             writeThreads.Add(thread);
             thread.Start();
         }
-        writeThreads.ForEach(t => t.Join());
 
         for (var i = 0; i < ReadersThreads; i++)
         {
@@ -56,6 +55,8 @@ public class SharedResourcePerformanceTests
             readThreads.Add(thread);
             thread.Start();
         }
+        
+        writeThreads.ForEach(t => t.Join());
         readThreads.ForEach(t => t.Join());
         
         timer.Stop();

@@ -23,7 +23,8 @@ public class SharedResourceTests
         
         for (var i = 0; i < WritersThreads; i++)
         {
-            var thread = new Thread(() => _sharedResource.Write($"Data {i}"));
+            var j = i;
+            var thread = new Thread(() => _sharedResource.Write($"Data {j}"));
             writeThreads.Add(thread);
             thread.Start();
         }
@@ -38,7 +39,7 @@ public class SharedResourceTests
         writeThreads.ForEach(t => t.Join());
         readThreads.ForEach(t => t.Join());
 
-        return ($"Data {WritersThreads}".Equals(_sharedResource.Read()));
+        return ($"Data {WritersThreads - 1}".Equals(_sharedResource.Read()));
     }
 
     [Test]
