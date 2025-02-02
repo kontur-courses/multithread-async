@@ -35,14 +35,14 @@ public class SharedResourceRwLock : SharedResourceBase
 
     public override long ComputeFactorial(int number)
     {
-        _rwLock.EnterUpgradeableReadLock();
+        _rwLock.EnterReadLock();
         try
         {
             return Factorial(number);
         }
         finally
         {
-            _rwLock.ExitUpgradeableReadLock();
+            _rwLock.ExitReadLock();
         }
     }
 }
