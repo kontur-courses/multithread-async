@@ -32,9 +32,14 @@ namespace ClusterClient.Clients
 
                 var completedTask = await Task.WhenAny(task, check, Task.Delay(clietTimeout));
 
-                if (completedTask == task && task is { Status: TaskStatus.RanToCompletion })
+                if (completedTask == task && completedTask is { Status: TaskStatus.RanToCompletion })
                 {
                     return task.Result;
+                }
+
+                if (completedTask == check && check is { Status: TaskStatus.RanToCompletion })
+                {
+                    return check.Result;
                 }
 
                 if (completedTask == task && task is { Status: TaskStatus.Faulted })
@@ -48,13 +53,6 @@ namespace ClusterClient.Clients
                     Task.Run(() => AddWhenEnd(task, prevTasks));
                 }
             }
-
-            if (check.IsCompleted)
-            {
-                prevTasks.Writer.Complete();
-                return check.Result;
-            }
-            
             
             throw new TimeoutException();
         }
