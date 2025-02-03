@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Linq;
-using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
+using ClusterClient.Common;
 using log4net;
 
 namespace ClusterClient.Clients
@@ -14,33 +15,30 @@ namespace ClusterClient.Clients
 
         public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
+            using var globalCts = new CancellationTokenSource(timeout);
             var tasks = ReplicaAddresses
                 .Select(x => CreateRequest(x + "?query=" + query))
-                .Select(ProcessRequestAsync)
+                .Select(x => ProcessRequestAsync(x).RunTaskWithTimeoutAsync(globalCts.Token))
                 .ToList();
 
             while (tasks.Count != 0)
             {
-                Task<string> completedTask = null;
                 try
                 {
-                    var delayTask = Task.Delay(timeout);
-                    var task  = await Task.WhenAny(tasks.Concat([delayTask]));
+                    var task = await Task.WhenAny(tasks);
+                    tasks.Remove(task);
+                    var stringResult = await task;
+                    await globalCts.CancelAsync();
 
-                    if (task is not Task<string> stringTask)
-                        throw new TimeoutException();
-
-                    completedTask = stringTask;
-
-                    return await stringTask;
+                    return stringResult;
                 }
-                catch (WebException)
+                catch (Exception ex)
                 {
-                    tasks.Remove(completedTask);
+                    Log.Error($"Error while processing request {query}, error: {ex.Message}.", ex);
                 }
             }
 
-            throw new TimeoutException();
+            throw new TimeoutException("All requests timed out or bad.");
         }
 
         protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));
