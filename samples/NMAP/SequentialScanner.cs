@@ -1,4 +1,7 @@
-﻿using System.Net;
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -6,58 +9,44 @@ using log4net;
 
 namespace NMAP
 {
-	public class SequentialScanner : IPScanner
-	{
-		protected virtual ILog log => LogManager.GetLogger(typeof(SequentialScanner));
+    public class SequentialScanner : IPScanner
+    {
+        protected virtual ILog log => LogManager.GetLogger(typeof(SequentialScanner));
 
-		public virtual Task Scan(IPAddress[] ipAddrs, int[] ports)
-		{
-			return Task.Run(() =>
-			{
-				foreach(var ipAddr in ipAddrs)
-				{
-					if(PingAddr(ipAddr) != IPStatus.Success)
-						continue;
+        public virtual Task Scan(IPAddress[] ipAddrs, int[] ports)
+        {
+            return Parallel.ForEachAsync(ipAddrs, new ParallelOptions() { MaxDegreeOfParallelism = 10 },
+                async (address, token) =>
+                {
+                    if (await PingAddr(address) != IPStatus.Success) return;
 
-					foreach(var port in ports)
-						CheckPort(ipAddr, port);
-				}
-			});
-		}
+                    await Task.WhenAll(ports.Select(x => CheckPort(address, x)));
+                });
+        }
 
-		protected IPStatus PingAddr(IPAddress ipAddr, int timeout = 3000)
-		{
-			log.Info($"Pinging {ipAddr}");
-			using(var ping = new Ping())
-			{
-				var status = ping.Send(ipAddr, timeout).Status;
-				log.Info($"Pinged {ipAddr}: {status}");
-				return status;
-			}
-		}
+        protected async Task<IPStatus> PingAddr(IPAddress ipAddr, int timeout = 3000)
+        {
+            log.Info($"Pinging {ipAddr}");
+            using var ping = new Ping();
+            var status = await ping.SendPingAsync(ipAddr, timeout);
+            log.Info($"Pinged {ipAddr}: {status}");
+            return status.Status;
+        }
 
-		protected void CheckPort(IPAddress ipAddr, int port, int timeout = 3000)
-		{
-			using(var tcpClient = new TcpClient())
-			{
-				log.Info($"Checking {ipAddr}:{port}");
+        protected async Task CheckPort(IPAddress ipAddr, int port, int timeout = 3000)
+        {
+            using var tcpClient = new TcpClient();
+            log.Info($"Checking {ipAddr}:{port}");
 
-				var connectTask = tcpClient.ConnectWithTimeout(ipAddr, port, timeout);
-				PortStatus portStatus;
-				switch(connectTask.Status)
-				{
-					case TaskStatus.RanToCompletion:
-						portStatus = PortStatus.OPEN;
-						break;
-					case TaskStatus.Faulted:
-						portStatus = PortStatus.CLOSED;
-						break;
-					default:
-						portStatus = PortStatus.FILTERED;
-						break;
-				}
-				log.Info($"Checked {ipAddr}:{port} - {portStatus}");
-			}
-		}
-	}
+            var connectTask = await tcpClient.ConnectWithTimeoutAsync(ipAddr, port, timeout);
+            var portStatus = connectTask.Status switch
+            {
+                TaskStatus.RanToCompletion => PortStatus.OPEN,
+                TaskStatus.Faulted => PortStatus.CLOSED,
+                _ => PortStatus.FILTERED
+            };
+
+            log.Info($"Checked {ipAddr}:{port} - {portStatus}");
+        }
+    }
 }

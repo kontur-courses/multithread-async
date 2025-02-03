@@ -102,7 +102,7 @@ namespace ClusterTests
 			return server;
 		}
 
-		protected TimeSpan[] ProcessRequests(double timeout, int take = 20)
+		protected TimeSpan[] ProcessRequests(double timeout, int take = 1)
 		{
 			var addresses = clusterServers
 				.Select(cs => $"http://127.0.0.1:{cs.ServerOptions.Port}/{cs.ServerOptions.MethodName}/")
@@ -127,7 +127,7 @@ namespace ClusterTests
 
 						return timer.Elapsed;
 					}
-					catch(TimeoutException)
+					catch (TimeoutException)
 					{
 						Console.WriteLine("Query \"{0}\" timeout ({1} ms)", query, timer.ElapsedMilliseconds);
 						throw;
