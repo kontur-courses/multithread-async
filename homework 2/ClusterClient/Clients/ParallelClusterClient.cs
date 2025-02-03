@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
+using System.Net;
 using System.Threading.Tasks;
 using log4net;
 
@@ -16,52 +14,33 @@ namespace ClusterClient.Clients
 
         public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-            using var cts = new CancellationTokenSource(timeout);
-
             var tasks = ReplicaAddresses
                 .Select(x => CreateRequest(x + "?query=" + query))
                 .Select(ProcessRequestAsync)
-                .Select(process => ProcessAsync(process, cts.Token)).ToList();
+                .ToList();
 
-            var completedTasks = new List<Task<string>>();
-            while (tasks.Count > 0)
+            while (tasks.Count != 0)
             {
-                var completedTask = await Task.WhenAny(tasks);
-                tasks.Remove(completedTask);
-
+                Task<string> completedTask = null;
                 try
                 {
-                    var result = await completedTask;
-                    if (!IsServerError(result))
-                    {
-                        await cts.CancelAsync();
-                        return result;
-                    }
-                    completedTasks.Add(completedTask);
+                    var delayTask = Task.Delay(timeout);
+                    var task  = await Task.WhenAny(tasks.Concat([delayTask]));
+
+                    if (task is not Task<string> stringTask)
+                        throw new TimeoutException();
+
+                    completedTask = stringTask;
+
+                    return await stringTask;
                 }
-                catch (Exception ex)
+                catch (WebException)
                 {
-                    Log.Error("Error processing request", ex);
+                    tasks.Remove(completedTask);
                 }
             }
 
-            if (completedTasks.Count > 0)
-                return await completedTasks.First();
-
-            throw new TimeoutException("All requests failed or timed out.");
-        }
-
-        private static bool IsServerError(string result) => result.Contains("500");
-
-        private static async Task<string> ProcessAsync(Task<string> task, CancellationToken token)
-        {
-            var delayTask = Task.Delay(-1, token);
-            var firstTask = await Task.WhenAny(task, delayTask);
-
-            if (firstTask == delayTask)
-                    throw new TimeoutException();
-
-            return await task;
+            throw new TimeoutException();
         }
 
         protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));
