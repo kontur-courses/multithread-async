@@ -10,8 +10,14 @@ public class SharedResourceRwLock : SharedResourceBase
     public override void Write(string data)
     {
         locker.EnterWriteLock();
-        value = data;
-        locker.ExitWriteLock();
+        try
+        {
+            value = data;
+        }
+        finally
+        {
+            locker.ExitWriteLock();
+        }
     }
 
     public override string Read()
