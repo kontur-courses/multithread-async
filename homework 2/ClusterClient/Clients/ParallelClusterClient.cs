@@ -1,23 +1,34 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using log4net;
 
 namespace ClusterClient.Clients
 {
-    public class ParallelClusterClient : ClusterClientBase
+    public class ParallelClusterClient(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
     {
-        public ParallelClusterClient(string[] replicaAddresses) : base(replicaAddresses)
+        public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-        }
+            var tasks = replicaAddresses
+                .Select(uri => CreateRequest(uri + "?query=" + query))
+                .Select(req => Task.Run(() => SilentProcessRequestAsync(req)))
+                .ToList();
+            
+            var delayTask = Task.Delay(timeout);
 
-        public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
-        {
-            throw new NotImplementedException();
+            while (tasks.Count != 0)
+            {
+                var processTask = Task.WhenAny(tasks);
+                await Task.WhenAny(processTask, delayTask);
+                if (delayTask.IsCompleted) throw new TimeoutException();
+                
+                if (processTask.Result.Result is not null)
+                    return processTask.Result.Result;
+                tasks.Remove(processTask.Result);
+            }
+            return null;
         }
-
+        
         protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));
     }
 }
