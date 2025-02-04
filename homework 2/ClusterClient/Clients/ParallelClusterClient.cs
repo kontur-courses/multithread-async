@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
+using ClusterClient.Clients.Extensions;
 using log4net;
 
 namespace ClusterClient.Clients
@@ -11,39 +12,26 @@ namespace ClusterClient.Clients
     {
         public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-            var webRequests = new HttpWebRequest[ReplicaAddresses.Length];
-            for (var i = 0; i < webRequests.Length; i++)
+            using var cancellation = new CancellationTokenSource(timeout);
+            Log.InfoFormat($"Start processing query \"{query}\" with {timeout} timeout");
+
+            var tasks = new List<Task<string>>(ReplicaAddresses.Length);
+            foreach (var address in ReplicaAddresses)
             {
-                webRequests[i] = CreateRequest($"{ReplicaAddresses[i]}?query={query}");
-            }
+                var request = CreateRequest($"{address}?query={query}");
+                Log.InfoFormat($"Processing {request.RequestUri}");
 
-            var tasks = new List<Task>(webRequests.Length + 1);
-            for (var i = 0; i < webRequests.Length; i++)
-            {
-                Log.InfoFormat($"Processing {webRequests[i].RequestUri}");
-                tasks.Add(ProcessRequestAsync(webRequests[i]));
-            }
-
-            var timeoutTask = Task.Delay(timeout);
-            tasks.Add(timeoutTask);
-
-            while (tasks.Count > 1)
-            {
-                var completedTask = await Task.WhenAny(tasks);
-
-                if (completedTask == timeoutTask)
+                var requestTask = Task.Run(async () =>
                 {
-                    throw new TimeoutException();
-                }
+                    cancellation.Token.Register(request.Abort);
+                    return await ProcessRequestAsync(request);
+                }, cancellation.Token);
 
-                if (completedTask.IsCompletedSuccessfully)
-                {
-                    return ((Task<string>)completedTask).Result;
-                }
-
-                tasks.Remove(completedTask);
+                tasks.Add(requestTask);
             }
-            throw new TimeoutException();
+
+            var timeoutMessage = $"No positive response received for query \"{query}\" with {timeout} timeout";
+            return await tasks.WaitForFirstSuccessAsync(timeoutMessage, cancellation);
         }
 
         protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));

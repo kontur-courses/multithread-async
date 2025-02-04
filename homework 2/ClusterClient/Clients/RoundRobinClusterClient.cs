@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Net;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using log4net;
 
@@ -10,44 +10,38 @@ namespace ClusterClient.Clients
     {
         public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-            var workingReplicasAdressesCount = ReplicaAddresses.Length;
+            Log.InfoFormat($"Start processing query \"{query}\" with {timeout} timeout");
 
-            var webRequests = new HttpWebRequest[ReplicaAddresses.Length];
-            for (var i = 0; i < webRequests.Length; i++)
+            var stopwatch = new Stopwatch();
+            var replicasLeftCount = ReplicaAddresses.Length;
+            foreach (var address in ReplicaAddresses)
             {
-                webRequests[i] = CreateRequest($"{ReplicaAddresses[i]}?query={query}");
-            }
+                stopwatch.Restart();
 
-            for (var i = 0; i < webRequests.Length; i++)
-            {
-                Log.InfoFormat($"Processing {webRequests[i].RequestUri}");
-                var timeoutPerTask = timeout / workingReplicasAdressesCount;
-                var timeoutTask = Task.Delay(timeoutPerTask);
-                var requestTask = ProcessRequestAsync(webRequests[i]);
+                var request = CreateRequest($"{address}?query={query}");
+                Log.InfoFormat($"Processing {request.RequestUri}");
 
-                var resultTask = await Task.WhenAny(timeoutTask, requestTask);
+                var timeoutTask = Task.Delay(timeout / replicasLeftCount);
+                var requestTask = ProcessRequestAsync(request);
 
-                if (resultTask == timeoutTask)
+                await Task.WhenAny(requestTask, timeoutTask);
+                stopwatch.Stop();
+
+                if (requestTask.IsFaulted)
                 {
+                    timeout = timeout.Subtract(stopwatch.Elapsed);
+                    replicasLeftCount -= 1;
                     continue;
                 }
 
-                if (resultTask.IsFaulted)
+                if (requestTask.IsCompletedSuccessfully)
                 {
-                    workingReplicasAdressesCount -= 1;
-                    if (workingReplicasAdressesCount <= 0)
-                    {
-                        throw new WebException();
-                    }
-                    continue;
-                }
-
-                if (resultTask.IsCompletedSuccessfully)
-                {
-                    return ((Task<string>)resultTask).Result;
+                    return requestTask.Result;
                 }
             }
-            throw new TimeoutException();
+
+            var timeoutMessage = $"No positive response received for query \"{query}\" with {timeout} timeout";
+            throw new TimeoutException(timeoutMessage);
         }
 
         protected override ILog Log => LogManager.GetLogger(typeof(RoundRobinClusterClient));
