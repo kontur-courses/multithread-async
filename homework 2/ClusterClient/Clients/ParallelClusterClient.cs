@@ -11,7 +11,7 @@ namespace ClusterClient.Clients
         {
             var tasks = replicaAddresses
                 .Select(uri => CreateRequest(uri + "?query=" + query))
-                .Select(req => Task.Run(() => SilentProcessRequestAsync(req)))
+                .Select(SilentProcessRequestAsync)
                 .ToList();
             
             var delayTask = Task.Delay(timeout);
