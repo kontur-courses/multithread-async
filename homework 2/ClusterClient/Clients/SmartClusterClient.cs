@@ -7,11 +7,11 @@ using log4net;
 
 namespace ClusterClient.Clients
 {
-    public class SmartClusterClient(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
+    public class SmartClusterClient(string[] replicaAddresses) : ClusterClientWithHistory(replicaAddresses)
     {
         public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-            var tasksWithPos = replicaAddresses
+            var tasksWithPos = OrderedReplicas()
                 .Select(uri => CreateRequest(uri + "?query=" + query))
                 .Select((req, i) => (task: SilentProcessRequestAsync(req), i));
             var previousTasks = new List<Task<string>>();

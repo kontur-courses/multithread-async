@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 using log4net;
 
@@ -13,15 +10,9 @@ namespace ClusterClient.Clients
     {
         public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-            var replicas = OrderedReplicas();
-            var tasksWithPos = replicas
+            var tasksWithPos = OrderedReplicas()
                 .Select(uri => CreateRequest(uri + "?query=" + query))
                 .Select((req, i) => (task: SilentProcessRequestAsync(req), i));
-            
-            Console.WriteLine("Current order is: " + replicas
-                .Select(r => Array.IndexOf(replicaAddresses, r))
-                .Aggregate(string.Empty, (s, i) => $"{s}, {i}")
-            );
 
             foreach (var (task, i) in tasksWithPos)
             {
@@ -29,10 +20,7 @@ namespace ClusterClient.Clients
                 
                 var sw = Stopwatch.StartNew();
                 await Task.WhenAny(task, Task.Delay(singleTimeout)); 
-                
-                var elapsed = sw.ElapsedMilliseconds;
-                timeout -= TimeSpan.FromMilliseconds(elapsed);
-                ReorderReplicas(elapsed, replicas[i]);
+                timeout -= TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
                 
                 if (task.IsCompleted && task.Result is not null) return task.Result;
             }
