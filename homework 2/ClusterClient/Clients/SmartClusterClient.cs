@@ -1,23 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using log4net;
 
-namespace ClusterClient.Clients
+namespace ClusterClient.Clients;
+
+public class SmartClusterClient(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
 {
-    public class SmartClusterClient : ClusterClientBase
+    protected override ILog Log => LogManager.GetLogger(typeof(SmartClusterClient));
+
+    public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
     {
-        public SmartClusterClient(string[] replicaAddresses) : base(replicaAddresses)
-        {
-        }
-
-        public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override ILog Log => LogManager.GetLogger(typeof(SmartClusterClient));
+        throw new NotImplementedException();
     }
 }
