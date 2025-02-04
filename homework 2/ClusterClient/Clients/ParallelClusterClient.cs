@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using log4net;
 
@@ -14,22 +10,13 @@ namespace ClusterClient.Clients
         public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
             var tasks = ReplicaAddresses
-                .Select(async uri =>
+                .Select(uri =>
                 {
                     var webRequest = CreateRequest(uri + "?query=" + query);
-                    try
-                    {
-                        return await ProcessRequestAsync(webRequest);
-                    }
-                    catch (WebException ex)
-                    {
-                        Log.WarnFormat("{0}: {1}", webRequest.RequestUri, ex.Message);
-                    }
-
-                    return null;
+                    return TryProcessRequestAsync(webRequest);
                 })
                 .ToList();
-
+            
             while (tasks.Count != 0)
             {
                 var processTask = Task.WhenAny(tasks);
@@ -39,7 +26,6 @@ namespace ClusterClient.Clients
                 {
                     throw new TimeoutException();
                 }
-
                 if (processTask.Result.Result is not null)
                 {
                     return processTask.Result.Result;
