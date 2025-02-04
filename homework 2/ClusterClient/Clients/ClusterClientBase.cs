@@ -8,14 +8,9 @@ using log4net;
 
 namespace ClusterClient.Clients
 {
-    public abstract class ClusterClientBase
+    public abstract class ClusterClientBase(string[] replicaAddresses)
     {
-        protected string[] ReplicaAddresses { get; set; }
-
-        protected ClusterClientBase(string[] replicaAddresses)
-        {
-            ReplicaAddresses = replicaAddresses;
-        }
+        protected string[] ReplicaAddresses { get; set; } = replicaAddresses;
 
         public abstract Task<string> ProcessRequestAsync(string query, TimeSpan timeout);
         protected abstract ILog Log { get; }
@@ -33,12 +28,10 @@ namespace ClusterClient.Clients
         protected async Task<string> ProcessRequestAsync(WebRequest request)
         {
             var timer = Stopwatch.StartNew();
-            using (var response = await request.GetResponseAsync())
-            {
-                var result = await new StreamReader(response.GetResponseStream(), Encoding.UTF8).ReadToEndAsync();
-                Log.InfoFormat("Response from {0} received in {1} ms", request.RequestUri, timer.ElapsedMilliseconds);
-                return result;
-            }
+            using var response = await request.GetResponseAsync();
+            var result = await new StreamReader(response.GetResponseStream(), Encoding.UTF8).ReadToEndAsync();
+            Log.InfoFormat("Response from {0} received in {1} ms", request.RequestUri, timer.ElapsedMilliseconds);
+            return result;
         }
     }
 }

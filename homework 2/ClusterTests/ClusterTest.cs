@@ -37,7 +37,7 @@ namespace ClusterTests
 		[Test]
 		public void Client_should_return_success_when_all_replicas_are_fast()
 		{
-			for(int i = 0; i < 3; i++)
+			for(var i = 0; i < 3; i++)
 				CreateServer(Fast);
 
 			ProcessRequests(Timeout);
@@ -46,7 +46,7 @@ namespace ClusterTests
 		[Test]
 		public virtual void Client_should_return_success_when_timeout_is_close()
 		{
-			for(int i = 0; i < 3; i++)
+			for(var i = 0; i < 3; i++)
 				CreateServer(Timeout);
 
 			ProcessRequests(Timeout + Epsilon);
@@ -55,7 +55,7 @@ namespace ClusterTests
 		[Test]
 		public void Client_should_timeout_when_all_replicas_are_slow()
 		{
-			for(int i = 0; i < 3; i++)
+			for(var i = 0; i < 3; i++)
 				CreateServer(Slow);
 
 			Action action = () => ProcessRequests(Timeout);
@@ -66,7 +66,7 @@ namespace ClusterTests
 		[Test]
 		public void Client_should_fail_when_all_replicas_are_bad()
 		{
-			for(int i = 0; i < 3; i++)
+			for(var i = 0; i < 3; i++)
 				CreateServer(Fast, status: 500);
 
 			Action action = () => ProcessRequests(Timeout);
@@ -77,7 +77,7 @@ namespace ClusterTests
 		protected abstract ClusterClientBase CreateClient(string[] replicaAddresses);
 
 		[SetUp]
-		public void SetUp() => clusterServers = new List<ClusterServer>();
+		public void SetUp() => _clusterServers = [];
 
 		[TearDown]
 		public void TearDown() => StopServers();
@@ -90,21 +90,19 @@ namespace ClusterTests
 				Port = GetFreePort()
 			};
 
-			var server = new ClusterServer(serverOptions, log);
-			clusterServers.Add(server);
+			var server = new ClusterServer(serverOptions, _log);
+			_clusterServers.Add(server);
 
-			if(!notStart)
-			{
-				server.Start();
-				Console.WriteLine($"Started server at port {serverOptions.Port}");
-			}
+			if (notStart) return server;
+			server.Start();
+			Console.WriteLine($"Started server at port {serverOptions.Port}");
 
 			return server;
 		}
 
 		protected TimeSpan[] ProcessRequests(double timeout, int take = 20)
 		{
-			var addresses = clusterServers
+			var addresses = _clusterServers
 				.Select(cs => $"http://127.0.0.1:{cs.ServerOptions.Port}/{cs.ServerOptions.MethodName}/")
 				.ToArray();
 
@@ -140,7 +138,7 @@ namespace ClusterTests
 
 		private void StopServers()
 		{
-			foreach(var clusterServer in clusterServers)
+			foreach(var clusterServer in _clusterServers)
 				clusterServer.Stop();
 		}
 
@@ -158,9 +156,9 @@ namespace ClusterTests
 			}
 		}
 
-		private List<ClusterServer> clusterServers;
+		private List<ClusterServer> _clusterServers;
 
-		private readonly ILog log = LogManager.GetLogger(typeof(Program));
+		private readonly ILog _log = LogManager.GetLogger(typeof(Program));
 
         static ClusterTest()
 		{

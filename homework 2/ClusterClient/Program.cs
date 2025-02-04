@@ -12,9 +12,9 @@ using log4net.Config;
 
 namespace ClusterClient
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             XmlConfigurator.Configure(LogManager.GetRepository(Assembly.GetCallingAssembly()), new FileInfo("log4net.config"));

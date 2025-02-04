@@ -7,12 +7,8 @@ using log4net;
 
 namespace ClusterClient.Clients
 {
-    public class ParallelClusterClient : ClusterClientBase
+    public class ParallelClusterClient(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
     {
-        public ParallelClusterClient(string[] replicaAddresses) : base(replicaAddresses)
-        {
-        }
-
         public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
             throw new NotImplementedException();
