@@ -70,7 +70,7 @@ namespace ClusterTests
 			CreateServer(1, status: 500);
 			CreateServer(1, status: 500);
 			CreateServer(10000);
-            CreateServer(2500);
+			CreateServer(2500);
 
 			foreach(var time in ProcessRequests(6000))
 				time.Should().BeCloseTo(TimeSpan.FromMilliseconds(5500), Epsilon);
