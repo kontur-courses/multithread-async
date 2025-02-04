@@ -22,26 +22,10 @@ namespace ClusterClient.Clients
             foreach (var address in ReplicaAddresses)
             {
                 var task = Task.Run(() => ProcessRequestAsync(CreateRequest(address + $"?query={query}")));
-                Console.WriteLine($"sent to {address}, {clietTimeout}");
-                var completedTask = await Task.WhenAny(task, Task.Delay(clietTimeout));
-                if (completedTask != task)
-                {
-                    Console.WriteLine("too long");
-                    continue;
-                }
-                
-                if (completedTask == task && task is { Status: TaskStatus.RanToCompletion })
-                {
-                    Console.WriteLine($"good send to {address}, {clietTimeout}");
-                    return task.Result;
-                }
+                await Task.WhenAny(task, Task.Delay(clietTimeout));
 
-                if (completedTask == task && task is { Status: TaskStatus.Faulted})
-                {
-                    Console.WriteLine($"send to {address} with error: 500");
-                    workClient--;
-                    clietTimeout += timeoutForOne / workClient;
-                }
+                if (task.Status is TaskStatus.RanToCompletion) return task.Result;
+                if (task.Status is TaskStatus.Faulted) clietTimeout += timeoutForOne / --workClient;
             }
 
             throw new TimeoutException();

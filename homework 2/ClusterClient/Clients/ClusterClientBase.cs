@@ -17,7 +17,6 @@ namespace ClusterClient.Clients
             ReplicaAddresses = replicaAddresses;
         }
 
-        // нужно просто вернуть хэш от параметра query
         public abstract Task<string> ProcessRequestAsync(string query, TimeSpan timeout);
         protected abstract ILog Log { get; }
 

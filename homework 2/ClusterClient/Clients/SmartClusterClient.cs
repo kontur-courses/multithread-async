@@ -13,47 +13,32 @@ namespace ClusterClient.Clients
 {
     public class SmartClusterClient : ClusterClientBase
     {
-        private object _lock = new object();
-
         public SmartClusterClient(string[] replicaAddresses) : base(replicaAddresses)
         {
         }
 
         public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-            var clietTimeout = timeout / ReplicaAddresses.Length;
+            var workServers = ReplicaAddresses.Length;
+
+            var clietTimeout = timeout / workServers;
             var timeoutForOne = clietTimeout;
+
             var prevTasks = Channel.CreateUnbounded<Task<string>>();
-            var workClient = ReplicaAddresses.Length;
             var check = Task.Run(() => CheckCompleted(prevTasks.Reader.ReadAllAsync()));
+
             foreach (var address in ReplicaAddresses)
             {
                 var task = Task.Run(() => ProcessRequestAsync(CreateRequest(address + $"?query={query}")));
+                await Task.WhenAny(task, check, Task.Delay(clietTimeout));
 
-                var completedTask = await Task.WhenAny(task, check, Task.Delay(clietTimeout));
-
-                if (completedTask == task && completedTask is { Status: TaskStatus.RanToCompletion })
-                {
-                    return task.Result;
-                }
-
-                if (completedTask == check && check is { Status: TaskStatus.RanToCompletion })
-                {
-                    return check.Result;
-                }
-
-                if (completedTask == task && task is { Status: TaskStatus.Faulted })
-                {
-                    workClient--;
-                    clietTimeout += timeoutForOne / workClient;
-                }
-
-                else if (completedTask != task)
-                {
-                    Task.Run(() => AddWhenEnd(task, prevTasks));
-                }
+                if (check.Status is TaskStatus.RanToCompletion) return check.Result;
+                
+                if (task.Status is TaskStatus.RanToCompletion) return task.Result;
+                if (task.Status is TaskStatus.Faulted) clietTimeout += timeoutForOne / --workServers;
+                else Task.Run(() => AddWhenEnd(task, prevTasks));
             }
-            
+
             throw new TimeoutException();
         }
 
