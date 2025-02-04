@@ -14,8 +14,7 @@ public class ParallelClusterClient(string[] replicaAddresses) : ClusterClientBas
 
         var tasks = ReplicaAddresses.Select(async replica =>
         {
-            var uri = replica + "?query=" + query;
-            var webRequest = CreateRequest(uri);
+            var webRequest = CreateRequest(replica + "?query=" + query);
 
             Log.InfoFormat($"Processing {webRequest.RequestUri}");
 
