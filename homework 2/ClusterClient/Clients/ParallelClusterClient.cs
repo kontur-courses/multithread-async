@@ -18,7 +18,11 @@ public class ParallelClusterClient(string[] replicaAddresses) : ClusterClientBas
 
             Log.InfoFormat($"Processing {webRequest.RequestUri}");
 
-            await using var registration = cts.Token.Register(webRequest.Abort);
+            await using var registration = cts.Token.Register(() =>
+            {
+                Log.WarnFormat($"Replica {replica} timed out.");
+                webRequest.Abort();
+            });
             return await ProcessRequestAsync(webRequest);
         }).ToList();
         
