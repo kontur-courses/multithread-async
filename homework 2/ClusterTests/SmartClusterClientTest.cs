@@ -44,7 +44,7 @@ namespace ClusterTests
 		}
 
 		[Test]
-		public void ShouldNotForgetPreviousAttemptWhenStartNew()
+		public virtual void ShouldNotForgetPreviousAttemptWhenStartNew()
 		{
 			CreateServer(4500);
 			CreateServer(3000);
@@ -55,7 +55,7 @@ namespace ClusterTests
 		}
 
 		[Test]
-		public void ShouldNotSpendTimeOnBad()
+		public virtual void ShouldNotSpendTimeOnBad()
 		{
 			CreateServer(1, status: 500);
 			CreateServer(1, status: 500);
