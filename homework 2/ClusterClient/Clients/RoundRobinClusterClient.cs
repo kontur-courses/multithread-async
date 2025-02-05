@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Linq;
-using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
 using log4net;
 
@@ -14,13 +11,13 @@ public class RoundRobinClusterClient(string[] replicaAddresses) : ClusterClientB
         for(var i = 0; i < ReplicaAddresses.Length; i++)
         {
             var startTime = DateTime.Now;
-            var perReplicaTimeout = TimeSpan.FromTicks(timeout.Ticks / (ReplicaAddresses.Length - i));
+            var replicaTimeout = TimeSpan.FromTicks(timeout.Ticks / (ReplicaAddresses.Length - i));
             var webRequest = CreateRequest(ReplicaAddresses[i] + "?query=" + query);
 
             Log.InfoFormat($"Processing {webRequest.RequestUri}");
 
             var requestTask = ProcessRequestAsync(webRequest);
-            var timeOut = Task.Delay(perReplicaTimeout);
+            var timeOut = Task.Delay(replicaTimeout);
             var completedTask = await Task.WhenAny(requestTask, timeOut);
             timeout -= DateTime.Now - startTime;
             
