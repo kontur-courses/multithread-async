@@ -10,8 +10,14 @@ public class SharedResourceLock : SharedResourceBase
     public override void Write(string data)
     {
         lockObject.EnterWriteLock();
-        resource = data;
-        lockObject.ExitWriteLock();
+        try
+        {
+            resource = data;
+        }
+        finally
+        {
+            lockObject.ExitWriteLock();
+        }
     }
 
     public override string Read()

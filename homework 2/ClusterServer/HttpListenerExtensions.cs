@@ -3,30 +3,67 @@ using System.Net;
 using System.Threading.Tasks;
 using log4net;
 
-namespace Cluster
+namespace Cluster;
+
+public static class HttpListenerExtensions
 {
-    public static class HttpListenerExtensions
+    private static readonly ILog Log = LogManager.GetLogger(typeof(HttpListenerExtensions));
+
+    public static void StartProcessingRequestsSync(this HttpListener listener, Action<HttpListenerContext> callbackSync)
     {
-        private static readonly ILog Log = LogManager.GetLogger(typeof(HttpListenerExtensions));
+        listener.Start();
 
-        public static void StartProcessingRequestsSync(this HttpListener listener, Action<HttpListenerContext> callbackSync)
+        while(true)
         {
-            listener.Start();
-
-            while(true)
+            try
             {
-                try
+                if(!listener.IsListening)
+                    return;
+
+                var context = listener.GetContext();
+
+                Task.Run(() =>
                 {
-                    if(!listener.IsListening)
-                        return;
-
-                    var context = listener.GetContext();
-
-                    Task.Run(() =>
+                    try
                     {
+                        callbackSync(context);
+                    }
+                    catch(Exception e)
+                    {
+                        Log.Error(e);
+                    }
+                    finally
+                    {
+                        context.Response.Close();
+                    }
+                });
+            }
+            catch(Exception e)
+            {
+                Log.Error(e);
+            }
+        }
+    }
+
+    public static async Task StartProcessingRequestsAsync(this HttpListener listener, Func<HttpListenerContext, Task> callbackAsync)
+    {
+        listener.Start();
+
+        while(true)
+        {
+            try
+            {
+                if(!listener.IsListening)
+                    return;
+
+                var context = await listener.GetContextAsync();
+                Task.Run(
+                    async () =>
+                    {
+                        var ctx = context;
                         try
                         {
-                            callbackSync(context);
+                            await callbackAsync(ctx);
                         }
                         catch(Exception e)
                         {
@@ -34,52 +71,14 @@ namespace Cluster
                         }
                         finally
                         {
-                            context.Response.Close();
+                            ctx.Response.Close();
                         }
-                    });
-                }
-                catch(Exception e)
-                {
-                    Log.Error(e);
-                }
+                    }
+                );
             }
-        }
-
-        public async static Task StartProcessingRequestsAsync(this HttpListener listener, Func<HttpListenerContext, Task> callbackAsync)
-        {
-            listener.Start();
-
-            while(true)
+            catch(Exception e)
             {
-                try
-                {
-                    if(!listener.IsListening)
-                        return;
-
-                    var context = await listener.GetContextAsync();
-                    Task.Run(
-                        async () =>
-                        {
-                            var ctx = context;
-                            try
-                            {
-                                await callbackAsync(ctx);
-                            }
-                            catch(Exception e)
-                            {
-                                Log.Error(e);
-                            }
-                            finally
-                            {
-                                ctx.Response.Close();
-                            }
-                        }
-                    );
-                }
-                catch(Exception e)
-                {
-                    Log.Error(e);
-                }
+                Log.Error(e);
             }
         }
     }
