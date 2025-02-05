@@ -2,7 +2,7 @@ namespace ReaderWriterLock;
 
 public class SharedResourceLock : SharedResourceBase
 {
-    private object _locker = new();
+    private readonly object _locker = new();
 
     public override void Write(string data)
     {
