@@ -8,7 +8,7 @@ internal class ReplicaSendHistoryItem(string uri)
     public string Uri { get; } = uri;
     public int SendWithWorkTimeCount { get; private set; }
     public int SendCount => sendCount;
-    
+
     public void IncrementSuccessfulSend(TimeSpan time)
     {
         lock (lockObject)
@@ -22,7 +22,7 @@ internal class ReplicaSendHistoryItem(string uri)
     {
         Interlocked.Increment(ref sendCount);
     }
-    
+
     public TimeSpan CalculateAverageResponseTime()
     {
         if (SendWithWorkTimeCount == 0)

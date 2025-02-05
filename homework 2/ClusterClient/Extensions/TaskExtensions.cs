@@ -20,7 +20,7 @@ public static class TaskExtensions
         var resultTask = await searchSuccessTask;
         return resultTask;
     }
-    
+
     public static async Task<Task<T>> GetFirstSuccessTask<T>(this IEnumerable<Task<T>> tasks,
         CancellationToken cancellationToken = default)
     {

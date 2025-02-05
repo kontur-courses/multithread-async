@@ -41,7 +41,7 @@ public sealed class ReplicaSendHistory : IReplicaSendHistory
         SortOrder sortOrder = SortOrder.Ascending)
     {
         AddAddressesIfNotContains(replicaAddresses);
-        
+
         var searchItems = items.Where(r => replicaAddresses.Contains(r.Key)).ToList();
         if (searchItems.All(x => x.Value.SendWithWorkTimeCount == 0))
         {
@@ -54,8 +54,6 @@ public sealed class ReplicaSendHistory : IReplicaSendHistory
             .ThenBy(item => item.Value.CalculateAverageResponseTime())
             .ThenBy(item => item.Key);
 
-        var a = orderedItems.ToList();
-        
         return sortOrder == SortOrder.Descending
             ? orderedItems.Reverse().Select(x => x.Key)
             : orderedItems.Select(x => x.Key);
