@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using log4net;
 
@@ -40,5 +41,18 @@ namespace ClusterClient.Clients
                 return result;
             }
         }
-    }
+
+		protected async Task<string> CreateRequestTaskWithCancel(string addr, string query, CancellationToken token)
+		{
+            var uriStr = $"{addr}?query={query}";
+
+			var request = CreateRequest(uriStr);
+
+			return await Task.Run(async () =>
+			{
+				token.Register(request.Abort);
+				return await ProcessRequestAsync(request);
+			}, token);
+		}
+	}
 }
