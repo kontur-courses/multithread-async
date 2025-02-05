@@ -15,7 +15,7 @@ public class ParallelClusterClientTest : ClusterTest
 	[Test]
 	public void ShouldReturnSuccessWhenLastReplicaIsGoodAndOthersAreSlow()
 	{
-		for(int i = 0; i < 3; i++)
+		for(var i = 0; i < 3; i++)
 			CreateServer(Slow);
 		CreateServer(Fast);
 
@@ -25,7 +25,7 @@ public class ParallelClusterClientTest : ClusterTest
 	[Test]
 	public void ShouldReturnSuccessWhenLastReplicaIsGoodAndOthersAreBad()
 	{
-		for(int i = 0; i < 3; i++)
+		for(var i = 0; i < 3; i++)
 			CreateServer(1, status: 500);
 		CreateServer(Fast);
 
@@ -46,7 +46,7 @@ public class ParallelClusterClientTest : ClusterTest
 	[Test]
 	public void ShouldFailFastWhenAllReplicasAreBad()
 	{
-		for(int i = 0; i < 3; i++)
+		for(var i = 0; i < 3; i++)
 			CreateServer(Fast, status: 500);
 
 		var sw = Stopwatch.StartNew();

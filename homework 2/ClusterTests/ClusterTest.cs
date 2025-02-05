@@ -37,7 +37,7 @@ public abstract class ClusterTest
 	[Test]
 	public void Client_should_return_success_when_all_replicas_are_fast()
 	{
-		for(int i = 0; i < 3; i++)
+		for(var i = 0; i < 3; i++)
 			CreateServer(Fast);
 
 		ProcessRequests(Timeout);
@@ -46,7 +46,7 @@ public abstract class ClusterTest
 	[Test]
 	public virtual void Client_should_return_success_when_timeout_is_close()
 	{
-		for(int i = 0; i < 3; i++)
+		for(var i = 0; i < 3; i++)
 			CreateServer(Timeout);
 
 		ProcessRequests(Timeout + Epsilon);
@@ -55,7 +55,7 @@ public abstract class ClusterTest
 	[Test]
 	public void Client_should_timeout_when_all_replicas_are_slow()
 	{
-		for(int i = 0; i < 3; i++)
+		for(var i = 0; i < 3; i++)
 			CreateServer(Slow);
 
 		Action action = () => ProcessRequests(Timeout);
@@ -66,7 +66,7 @@ public abstract class ClusterTest
 	[Test]
 	public void Client_should_fail_when_all_replicas_are_bad()
 	{
-		for(int i = 0; i < 3; i++)
+		for(var i = 0; i < 3; i++)
 			CreateServer(Fast, status: 500);
 
 		Action action = () => ProcessRequests(Timeout);
@@ -93,11 +93,9 @@ public abstract class ClusterTest
 		var server = new ClusterServer(serverOptions, log);
 		clusterServers.Add(server);
 
-		if(!notStart)
-		{
-			server.Start();
-			Console.WriteLine($"Started server at port {serverOptions.Port}");
-		}
+		if (notStart) return server;
+		server.Start();
+		Console.WriteLine($"Started server at port {serverOptions.Port}");
 
 		return server;
 	}
