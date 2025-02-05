@@ -1,23 +1,35 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using ClusterClient.Extensions;
+using ClusterHistory.Interfaces;
 using log4net;
 
-namespace ClusterClient.Clients
+namespace ClusterClient.Clients;
+
+public class ParallelClusterClient : ClusterClientBase
 {
-    public class ParallelClusterClient : ClusterClientBase
+    public ParallelClusterClient(string[] replicaAddresses, IReplicaSendHistory replicaSendHistory)
+        : base(replicaAddresses, replicaSendHistory)
     {
-        public ParallelClusterClient(string[] replicaAddresses) : base(replicaAddresses)
-        {
-        }
-
-        public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));
     }
+
+    public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout,
+        CancellationToken cancellationToken = default)
+    {
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var linkedToken = linkedCts.Token;
+        var webRequests = ReplicaAddresses.Select(r => CreateUri(r, query)).Select(CreateRequest);
+        var requestTasks = webRequests.Select(x =>
+        {
+            Log.InfoFormat($"Processing {x.RequestUri}");
+            return ProcessRequestAsync(x, linkedToken);
+        });
+        var resultTask = await requestTasks.WhenAnyFirstSuccessfulTask(timeout, linkedToken);
+        await linkedCts.CancelAsync();
+        return await resultTask;
+    }
+
+    protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));
 }
