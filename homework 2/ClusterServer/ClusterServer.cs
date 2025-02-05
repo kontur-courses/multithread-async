@@ -16,6 +16,8 @@ namespace Cluster
 
         public void Start()
         {
+            // если isRunning находистя NorRunning, то всё прекрасно, и мы просто сделаем IsRunning Running и вернём NotRunning. если же IsRunning не NotRinning, то мы не изменим значение и вернём, всё что угодно но не NotRunning, так как внутри isRunning у нас хранится не NotRunning 
+            // здесь достаточна интересная логика, по сути, этим if мы смотрим, чтоб значение было NotRunning а уже потом меняем, так как это нам нужно
             if(Interlocked.CompareExchange(ref isRunning, Running, NotRunning) == NotRunning)
             {
                 httpListener = new HttpListener
@@ -49,7 +51,7 @@ namespace Cluster
         {
             return context =>
             {
-                var currentRequestId = Interlocked.Increment(ref RequestsCount);
+                var currentRequestId = Interlocked.Increment(ref RequestsCount); // сделано, чтоб два запроса одновременно не увеличили 2 на 3 и в итоге, чтоб не получили оба id 3.
                 var query = context.Request.QueryString["query"];
                 log.InfoFormat($"Thread #{Thread.CurrentThread.ManagedThreadId} received request '{query}' #{currentRequestId} at {DateTime.Now.TimeOfDay}");
 

@@ -39,7 +39,7 @@ namespace ClusterTests
 				CreateServer(Slow);
 
 			var sw = Stopwatch.StartNew();
-			Assert.Throws<TimeoutException>(() => ProcessRequests(Timeout));
+			Assert.Throws<TimeoutException>(() => ProcessRequests(Timeout,1));
 			sw.Elapsed.Should().BeCloseTo(TimeSpan.FromMilliseconds(Timeout), Epsilon);
 		}
 
@@ -50,7 +50,7 @@ namespace ClusterTests
                 CreateServer(Fast, status: 500);
 
             var sw = Stopwatch.StartNew();
-            ((Action)(() => ProcessRequests(Timeout))).Should().Throw<Exception>();
+            ((Action)(() => ProcessRequests(Timeout, 1))).Should().Throw<Exception>();
             sw.Elapsed.Should().BeCloseTo(TimeSpan.FromMilliseconds(Fast), Epsilon);
         }
     }
