@@ -6,6 +6,7 @@ public class SharedResourceRwLock : SharedResourceBase
 {
     private string data;
     private readonly ReaderWriterLockSlim rwLock = new();
+    private readonly object factorialLock = new();
 
     public override void Write(string data)
     {
@@ -35,14 +36,9 @@ public class SharedResourceRwLock : SharedResourceBase
 
     public override long ComputeFactorial(int number)
     {
-        rwLock.EnterReadLock();
-        try
+        lock (factorialLock)
         {
             return Factorial(number);
-        }
-        finally
-        {
-            rwLock.ExitReadLock();
         }
     }
 }
