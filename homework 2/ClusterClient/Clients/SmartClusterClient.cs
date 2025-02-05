@@ -7,15 +7,44 @@ using log4net;
 
 namespace ClusterClient.Clients
 {
-    public class SmartClusterClient : ClusterClientBase
+    public class SmartClusterClient(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
     {
-        public SmartClusterClient(string[] replicaAddresses) : base(replicaAddresses)
+        public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-        }
+            var completedTaskCount = 0;
+            var tasks = new HashSet<Task<string>>();
 
-        public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
-        {
-            throw new NotImplementedException();
+            foreach (var replicaAddress in ReplicaAddresses)
+            {
+                var currentTimeout = timeout / (ReplicaAddresses.Length - completedTaskCount);
+
+                var request = CreateRequest($"{replicaAddress}?query={query}");
+
+                Log.InfoFormat($"Processing {replicaAddress}");
+
+                var task = ProcessRequestAsync(request);
+                tasks.Add(task);
+                var delay = Task.Delay(currentTimeout);
+
+                var completedTask = await Task.WhenAny(tasks.Append(delay));
+                
+                if (completedTask == delay)
+                    continue;
+
+                if (completedTask.IsCompletedSuccessfully)
+                    return await (Task<string>)completedTask;
+                
+                if (completedTask is Task<string> resultTask)
+                    tasks.Remove(resultTask);
+                
+                completedTaskCount++;
+            }
+
+            var timeoutException = new TimeoutException();
+            
+            Log.Error("Timeout", timeoutException);
+
+            throw timeoutException;
         }
 
         protected override ILog Log => LogManager.GetLogger(typeof(SmartClusterClient));
