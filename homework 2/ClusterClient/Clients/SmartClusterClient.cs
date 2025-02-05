@@ -14,34 +14,32 @@ namespace ClusterClient.Clients
             var completedTaskCount = 0;
             var tasks = new HashSet<Task<string>>();
 
-            foreach (var replicaAddress in ReplicaAddresses)
+            foreach (var request in ReplicaAddresses.Select(address => CreateRequest($"{address}?query={query}")))
             {
                 var currentTimeout = timeout / (ReplicaAddresses.Length - completedTaskCount);
 
-                var request = CreateRequest($"{replicaAddress}?query={query}");
-
-                Log.InfoFormat($"Processing {replicaAddress}");
+                Log.InfoFormat($"Processing {request.RequestUri}");
 
                 var task = ProcessRequestAsync(request);
                 tasks.Add(task);
                 var delay = Task.Delay(currentTimeout);
 
                 var completedTask = await Task.WhenAny(tasks.Append(delay));
-                
+
                 if (completedTask == delay)
                     continue;
 
                 if (completedTask.IsCompletedSuccessfully)
                     return await (Task<string>)completedTask;
-                
+
                 if (completedTask is Task<string> resultTask)
                     tasks.Remove(resultTask);
-                
+
                 completedTaskCount++;
             }
 
             var timeoutException = new TimeoutException();
-            
+
             Log.Error("Timeout", timeoutException);
 
             throw timeoutException;
