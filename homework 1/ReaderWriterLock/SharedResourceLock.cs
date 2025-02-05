@@ -1,19 +1,42 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+
 namespace ReaderWriterLock;
 
 public class SharedResourceLock : SharedResourceBase
 {
+    private readonly object _lock = new object();
+    
     public override void Write(string data)
     {
-        throw new System.NotImplementedException();
+        lock (_lock)
+        {
+            _sharedResource.Add(data);
+        }
     }
 
-    public override string Read()
+    public override string[] Read()
     {
-        throw new System.NotImplementedException();
+        lock (_lock)
+        {
+            return _sharedResource.ToArray();
+        }
     }
 
-    public override long ComputeFactorial(int number)
+    public override long ComputeFactorialRead(int number)
     {
-        throw new System.NotImplementedException();
+        lock (_lock)
+        {
+            return Factorial(number);
+        }
+    }
+
+    public override long ComputeFactorialWrite(int number)
+    {
+        lock (_lock)
+        {
+            return Factorial(number);
+        }
     }
 }

@@ -77,7 +77,7 @@ namespace ClusterTests
 		protected abstract ClusterClientBase CreateClient(string[] replicaAddresses);
 
 		[SetUp]
-		public void SetUp() => clusterServers = new List<ClusterServer>();
+		public virtual void SetUp() => ClusterServers = new List<ClusterServer>();
 
 		[TearDown]
 		public void TearDown() => StopServers();
@@ -91,7 +91,7 @@ namespace ClusterTests
 			};
 
 			var server = new ClusterServer(serverOptions, log);
-			clusterServers.Add(server);
+			ClusterServers.Add(server);
 
 			if(!notStart)
 			{
@@ -104,7 +104,7 @@ namespace ClusterTests
 
 		protected TimeSpan[] ProcessRequests(double timeout, int take = 20)
 		{
-			var addresses = clusterServers
+			var addresses = ClusterServers
 				.Select(cs => $"http://127.0.0.1:{cs.ServerOptions.Port}/{cs.ServerOptions.MethodName}/")
 				.ToArray();
 
@@ -140,7 +140,7 @@ namespace ClusterTests
 
 		private void StopServers()
 		{
-			foreach(var clusterServer in clusterServers)
+			foreach(var clusterServer in ClusterServers)
 				clusterServer.Stop();
 		}
 
@@ -158,7 +158,7 @@ namespace ClusterTests
 			}
 		}
 
-		private List<ClusterServer> clusterServers;
+		protected List<ClusterServer> ClusterServers;
 
 		private readonly ILog log = LogManager.GetLogger(typeof(Program));
 
