@@ -58,9 +58,18 @@ public class SmartClusterClient(string[] replicaAddresses) : ClusterClientBase(r
             }
         }
 
-        return await ProcessRemainingTasks(pendingTasks)
-               ?? throw lastException
-                        ?? throw new TimeoutException("All replicas timed out");
+        var finalResult = await ProcessRemainingTasks(pendingTasks);
+        if (finalResult != null)
+        {
+            return finalResult;
+        }
+
+        if (lastException != null)
+        {
+            throw lastException;
+        }
+
+        throw new TimeoutException("All replicas timed out");
     }
 
     private ReplicaTask CreateReplicaTask(string query, string replica)
