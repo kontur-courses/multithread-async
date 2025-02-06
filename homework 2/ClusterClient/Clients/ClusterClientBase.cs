@@ -9,14 +9,9 @@ using log4net;
 
 namespace ClusterClient.Clients
 {
-    public abstract class ClusterClientBase
+    public abstract class ClusterClientBase(string[] replicaAddresses)
     {
-        protected string[] ReplicaAddresses { get; set; }
-
-        protected ClusterClientBase(string[] replicaAddresses)
-        {
-            ReplicaAddresses = replicaAddresses;
-        }
+        protected string[] ReplicaAddresses { get; set; } = replicaAddresses;
 
         public abstract Task<string> ProcessRequestAsync(string query, TimeSpan timeout);
         protected abstract ILog Log { get; }
@@ -41,7 +36,8 @@ namespace ClusterClient.Clients
                 return result;
             }
         }
-        public async Task<string> ProcessRequestAsync(WebRequest webRequest, TimeSpan timeSpan)
+
+        protected async Task<string> ProcessRequestAsync(WebRequest webRequest, TimeSpan timeSpan)
         {
             var task = ProcessRequestAsync(webRequest);
             var completedTask = await Task.WhenAny(task, Task.Delay(timeSpan));
@@ -54,7 +50,7 @@ namespace ClusterClient.Clients
             return await task;
         }
 
-        protected string CombineQueryUri(string uri,string query)
+        protected static string CombineQueryUri(string uri,string query)
         {
             return uri + "?query=" + query;
         }
