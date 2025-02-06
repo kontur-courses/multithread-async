@@ -1,23 +1,37 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using log4net;
 
-namespace ClusterClient.Clients
+namespace ClusterClient.Clients;
+
+public class RoundRobinClusterClient(string[] replicaAddresses) : ClusterClientBaseWithHistory(replicaAddresses)
 {
-    public class RoundRobinClusterClient : ClusterClientBase
+    public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
     {
-        public RoundRobinClusterClient(string[] replicaAddresses) : base(replicaAddresses)
-        {
-        }
+        var tasksWithIdx = OrderedReplicas
+            .Select((uri, i) =>
+            {
+                var webRequest = CreateRequest(uri + "?query=" + query);
+                return (TryProcessRequestAsync(webRequest), i);
+            });
 
-        public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
+        foreach (var (task, i) in tasksWithIdx)
         {
-            throw new NotImplementedException();
+            var singleTimeout = timeout / (ReplicaAddresses.Length - i);
+            var sw = Stopwatch.StartNew();
+            await Task.WhenAny(task, Task.Delay(singleTimeout));
+            sw.Stop();
+            timeout -= TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
+            
+            if (task.IsCompleted && task.Result is not null) 
+            {
+                return task.Result;
+            }
         }
-
-        protected override ILog Log => LogManager.GetLogger(typeof(RoundRobinClusterClient));
+        throw new TimeoutException();
     }
+
+    protected override ILog Log => LogManager.GetLogger(typeof(RoundRobinClusterClient));
 }
