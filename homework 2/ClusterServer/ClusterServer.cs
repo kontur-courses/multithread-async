@@ -8,6 +8,16 @@ namespace Cluster
 {
 	public class ClusterServer
     {
+        private int RequestsCount;
+
+        private int isRunning = NotRunning;
+
+        private const int Running = 1;
+        private const int NotRunning = 0;
+
+        private readonly ILog log;
+        private HttpListener httpListener;
+
         public ClusterServer(ServerOptions serverOptions, ILog log)
         {
             this.ServerOptions = serverOptions;
@@ -81,15 +91,5 @@ namespace Cluster
                 log.InfoFormat($"Thread #{Thread.CurrentThread.ManagedThreadId} sent response {status} for '{query}' #{currentRequestNum} at {DateTime.Now.TimeOfDay}");
             };
         }
-
-        private int RequestsCount;
-
-        private int isRunning = NotRunning;
-
-        private const int Running = 1;
-        private const int NotRunning = 0;
-
-        private readonly ILog log;
-        private HttpListener httpListener;
     }
 }
