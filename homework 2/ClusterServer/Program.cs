@@ -19,19 +19,19 @@ namespace Cluster
                 if(!ServerOptions.TryGetArguments(args, out var parsedArguments))
                     return;
 
-                var server = new ClusterServer(parsedArguments, log);
+                var server = new ClusterServer(parsedArguments, Log);
                 server.Start();
 
-                log.InfoFormat("Press ENTER to stop listening");
+                Log.InfoFormat("Press ENTER to stop listening");
                 Console.ReadLine();
-                log.InfoFormat("Server stopped!");
+                Log.InfoFormat("Server stopped!");
             }
             catch(Exception e)
             {
-                log.Fatal(e);
+                Log.Fatal(e);
             }
         }
 
-        private static readonly ILog log = LogManager.GetLogger(typeof(Program));
+        private static readonly ILog Log = LogManager.GetLogger(typeof(Program));
     }
 }

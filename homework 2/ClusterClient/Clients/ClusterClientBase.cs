@@ -40,5 +40,18 @@ namespace ClusterClient.Clients
                 return result;
             }
         }
+        
+        protected async Task<string> TryProcessRequestAsync(WebRequest request)
+        {
+            try
+            {
+                return await ProcessRequestAsync(request);
+            }
+            catch (WebException ex)
+            {
+                Log.ErrorFormat("Request to {0} failed: {1}", request.RequestUri, ex.Message);
+            }
+            return null;
+        }
     }
 }
