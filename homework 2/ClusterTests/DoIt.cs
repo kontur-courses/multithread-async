@@ -1,22 +1,21 @@
 ﻿using System;
 
-namespace ClusterTests
+namespace ClusterTests;
+
+public static class DoIt
 {
-	public static class DoIt
+	public static bool Try(this Action action, out Exception ex)
 	{
-		public static bool Try(this Action action, out Exception ex)
+		try
 		{
-			try
-			{
-				action();
-				ex = null;
-				return true;
-			}
-			catch (Exception e)
-			{
-				ex = e;
-				return false;
-			}
+			action();
+			ex = null;
+			return true;
+		}
+		catch (Exception e)
+		{
+			ex = e;
+			return false;
 		}
 	}
 }

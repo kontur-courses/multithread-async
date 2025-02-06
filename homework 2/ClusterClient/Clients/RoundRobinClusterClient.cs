@@ -1,23 +1,49 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using log4net;
 
-namespace ClusterClient.Clients
+namespace ClusterClient.Clients;
+
+public class RoundRobinClusterClient(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
 {
-    public class RoundRobinClusterClient : ClusterClientBase
+    public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
     {
-        public RoundRobinClusterClient(string[] replicaAddresses) : base(replicaAddresses)
-        {
-        }
+        var devidedTimeout = TimeSpan.FromMilliseconds(timeout.TotalMilliseconds / ReplicaAddresses.Length);
+        var badRequestsCount = 0;
+        var tasks = ReplicaAddresses
+            .Select(uri => CreateRequest(uri + "?query=" + query))
+            .Select(request =>
+            {
+                Log.InfoFormat($"Processing {request.RequestUri}");
+                return ProcessRequestAsync(request);
+            });
 
-        public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
+        foreach (var task in tasks)
         {
-            throw new NotImplementedException();
+            using var cts = new CancellationTokenSource(devidedTimeout);
+            try
+            {
+                var result = await task.RunTaskWithCancellation(cts.Token);
+                if (task.IsCompletedSuccessfully)
+                    return result;
+            }
+            catch (WebException e)
+            {
+                badRequestsCount++;
+                devidedTimeout = TimeSpan.FromMilliseconds(timeout.TotalMilliseconds / (ReplicaAddresses.Length - badRequestsCount));
+            }
+            catch
+            {
+                // ignored
+            }
         }
-
-        protected override ILog Log => LogManager.GetLogger(typeof(RoundRobinClusterClient));
+        
+        throw new TimeoutException("Task timed out");
+        
     }
+
+    protected override ILog Log => LogManager.GetLogger(typeof(RoundRobinClusterClient));
 }

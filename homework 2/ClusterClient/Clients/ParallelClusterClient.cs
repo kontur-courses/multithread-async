@@ -1,23 +1,39 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using log4net;
 
-namespace ClusterClient.Clients
+namespace ClusterClient.Clients;
+
+public class ParallelClusterClient(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
 {
-    public class ParallelClusterClient : ClusterClientBase
+    public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
     {
-        public ParallelClusterClient(string[] replicaAddresses) : base(replicaAddresses)
+        using var cts = new CancellationTokenSource(timeout);
+        var cancellationToken = cts.Token;
+
+        var tasks = ReplicaAddresses
+            .Select(uri => CreateRequest(uri + "?query=" + query))
+            .Select(async request =>
+            {
+                Log.InfoFormat($"Processing {request.RequestUri}");
+                return await ProcessRequestAsync(request).RunTaskWithCancellation(cancellationToken);
+            })
+            .ToHashSet();
+        
+        while (tasks.Count != 0)
         {
+            var task = await Task.WhenAny(tasks);
+            tasks.Remove(task);
+            if (task.IsCanceled) throw new TimeoutException("Task timed out");
+            if (!task.IsCompletedSuccessfully) continue;
+            await cts.CancelAsync();
+            return task.Result;
         }
 
-        public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));
+        throw new TimeoutException("All requests failed");
     }
+
+    protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));
 }
