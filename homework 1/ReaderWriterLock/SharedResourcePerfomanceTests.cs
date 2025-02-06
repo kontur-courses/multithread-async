@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
+using FluentAssertions;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 
@@ -20,24 +22,47 @@ public class SharedResourcePerformanceTests
     public void TestLockPerformance()
     {
         _sharedResource = new SharedResourceLock();
-        long lockTime = MeasurePerformance();
+        var lockTime = MeasurePerformance();
         Console.WriteLine($"Lock time taken: {lockTime} ms");
 
         _sharedResource = new SharedResourceRwLock();
-        long rwLockTime = MeasurePerformance();
+        var rwLockTime = MeasurePerformance();
         Console.WriteLine($"ReaderWriterLock time taken: {rwLockTime} ms");
 
         // Проверка, что время выполнения с ReaderWriterLock меньше, чем с Lock
-        ClassicAssert.Less(rwLockTime, lockTime, "ReaderWriterLock should be faster than Lock");
+        rwLockTime.Should().BeLessThan(lockTime, "because rwlock time is less than the lock time");
     }
 
     private long MeasurePerformance()
     {
-        // Нужно реализовать тест производительности.
-        // В многопоточном режиме нужно запустить:
-        // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
-        // - Запись значений в количестве WritersThreads записывающих потоков
-        // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
-        throw new NotImplementedException();
+        var readerThreads = Enumerable.Range(0, ReadersThreads).Select(_ => new Thread(Read));
+        var writerThreads = Enumerable.Range(0, WritersThreads).Select(_ => new Thread(Write));
+
+        var threads = writerThreads.Concat(readerThreads).ToArray();
+
+        var stopwatch = Stopwatch.StartNew();
+        threads.ForEach(t => t.Start());
+        threads.ForEach(t => t.Join());
+        stopwatch.Stop();
+
+        return stopwatch.ElapsedMilliseconds;
+    }
+
+    private void Read()
+    {
+        for (var i = 0; i < NumberOfIterations; i++)
+        {
+            _sharedResource.Read();
+            _sharedResource.ComputeFactorial(FactorialNumber);
+        }
+    }
+
+    private void Write()
+    {
+        for (var i = 0; i < NumberOfIterations; i++)
+        {
+            _sharedResource.Write("Data");
+            _sharedResource.ComputeFactorial(FactorialNumber);
+        }
     }
 }

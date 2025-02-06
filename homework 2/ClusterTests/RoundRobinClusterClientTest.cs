@@ -15,7 +15,7 @@ namespace ClusterTests
 		[Test]
 		public override void Client_should_return_success_when_timeout_is_close()
 		{
-			for(int i = 0; i < 3; i++)
+			for(var i = 0; i < 3; i++)
 				CreateServer(Timeout / 3);
 
 			ProcessRequests(Timeout + 100);
@@ -24,7 +24,7 @@ namespace ClusterTests
 		[Test]
 		public void ShouldReturnSuccessWhenLastReplicaIsGoodAndOthersAreSlow()
 		{
-			for(int i = 0; i < 3; i++)
+			for(var i = 0; i < 3; i++)
 				CreateServer(Slow);
 			CreateServer(Fast);
 
@@ -34,7 +34,7 @@ namespace ClusterTests
 		[Test]
 		public void ShouldReturnSuccessWhenLastReplicaIsGoodAndOthersAreBad()
 		{
-			for(int i = 0; i < 1; i++)
+			for(var i = 0; i < 1; i++)
 				CreateServer(1, status: 500);
 			CreateServer(Fast);
 

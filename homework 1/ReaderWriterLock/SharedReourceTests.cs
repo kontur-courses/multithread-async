@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading;
+using FluentAssertions;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 
@@ -14,22 +15,31 @@ public class SharedResourceTests
     private SharedResourceBase _sharedResource;
 
     [Test]
-    public void TestConcurrentReadWrite()
-    {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной.
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
-        
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
-    }
-    
+    public void TestConcurrentReadWrite() =>
+        TestConcurrent(new SharedResourceLock());
+
     [Test]
-    public void TestConcurrentReadWriteRwLock()
+    public void TestConcurrentReadWriteRwLock() =>
+        TestConcurrent(new SharedResourceRwLock());
+
+    private void TestConcurrent(SharedResourceBase sharedResource)
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
+        _sharedResource = sharedResource;
+        var writers = Enumerable.Range(0, WritersThreads)
+            .Select(x => new Thread(() => _sharedResource.Write($"Data {x}")))
+            .ToArray();
+        var readers = Enumerable.Range(0, ReadersThreads)
+            .Select(x => new Thread(() => _sharedResource.Read()))
+            .ToArray();
+        var threads = writers.Concat(readers).ToArray();
+        var expected = $"Data {WritersThreads - 1}";
+        threads.ForEach(x => x.Start());
+        threads.ForEach(x => x.Join());
         
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        var actual = sharedResource.Read();
+        var startPosition = actual.Length - expected.Length;
+        var endOfActual = actual.Substring(startPosition, expected.Length);
+        
+        endOfActual.Should().BeEquivalentTo(expected);
     }
 }
