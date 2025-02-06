@@ -31,11 +31,14 @@ public abstract class ClusterClientBaseWithHistory(string[] replicaAddresses) : 
         }
     }
 
-    protected string[] OrderedReplicas()
+    protected string[] OrderedReplicas
     {
-        lock (_replicasStatistics)
+        get
         {
-            return _replicasStatistics.Select(info => info.Name).ToArray();
+            lock (_replicasStatistics)
+            {
+                return _replicasStatistics.Select(info => info.Name).ToArray();
+            }
         }
     }
 

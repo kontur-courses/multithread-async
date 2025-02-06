@@ -10,7 +10,7 @@ public class RoundRobinClusterClient(string[] replicaAddresses) : ClusterClientB
 {
     public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
     {
-        var tasksWithIdx = OrderedReplicas()
+        var tasksWithIdx = OrderedReplicas
             .Select((uri, i) =>
             {
                 var webRequest = CreateRequest(uri + "?query=" + query);

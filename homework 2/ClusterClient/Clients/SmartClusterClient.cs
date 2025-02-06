@@ -11,7 +11,7 @@ public class SmartClusterClient(string[] replicaAddresses) : ClusterClientBaseWi
 {
     public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
     {
-        var tasksWithIdx = OrderedReplicas()
+        var tasksWithIdx = OrderedReplicas
             .Select((uri, i) =>
             {
                 var webRequest = CreateRequest(uri + "?query=" + query);
