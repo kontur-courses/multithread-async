@@ -33,13 +33,15 @@ namespace ClusterClient.Clients
         protected async Task<string> ProcessRequestAsync(WebRequest request)
         {
             var timer = Stopwatch.StartNew();
-            using (var response = await request.GetResponseAsync())
-            {
-                var result = await new StreamReader(response.GetResponseStream(), Encoding.UTF8).ReadToEndAsync();
-                Log.InfoFormat("Response from {0} received in {1} ms", request.RequestUri, timer.ElapsedMilliseconds);
-                return result;
-            }
+            using var response = await request.GetResponseAsync();
+            var result = await new StreamReader(response.GetResponseStream()!, Encoding.UTF8).ReadToEndAsync();
+            timer.Stop();
+            PostProcessRequest(request, timer);
+            return result;
         }
+        
+        protected virtual void PostProcessRequest(WebRequest request, Stopwatch timer) => 
+            Log.InfoFormat("Response from {0} received in {1} ms", request.RequestUri, timer.ElapsedMilliseconds);
         
         protected async Task<string> TryProcessRequestAsync(WebRequest request)
         {

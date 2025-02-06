@@ -6,11 +6,11 @@ using log4net;
 
 namespace ClusterClient.Clients;
 
-public class RoundRobinClusterClient(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
+public class RoundRobinClusterClient(string[] replicaAddresses) : ClusterClientBaseWithHistory(replicaAddresses)
 {
     public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
     {
-        var tasksWithIdx = ReplicaAddresses
+        var tasksWithIdx = OrderedReplicas()
             .Select((uri, i) =>
             {
                 var webRequest = CreateRequest(uri + "?query=" + query);
