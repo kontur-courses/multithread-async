@@ -1,23 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using log4net;
 
-namespace ClusterClient.Clients
+namespace ClusterClient.Clients;
+
+public class SmartClusterClient(string[] replicaAddresses) : UpdatedClusterClientBase(replicaAddresses)
 {
-    public class SmartClusterClient : ClusterClientBase
+    protected override ILog Log => LogManager.GetLogger(typeof(SmartClusterClient));
+
+    public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
     {
-        public SmartClusterClient(string[] replicaAddresses) : base(replicaAddresses)
+        var list = new List<Task<string>>();
+        var interval = timeout.Divide(ReplicaAddresses.Length);
+        var cts = new CancellationTokenSource(timeout);
+        
+        foreach (var address in ReplicaAddresses)
         {
-        }
-
-        public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override ILog Log => LogManager.GetLogger(typeof(SmartClusterClient));
+            var uri = address + "?query=" + query;
+            Log.InfoFormat($"Processing {uri}");
+            list.Add(GetData(uri, cts.Token));
+            await Task.Delay(interval);
+            var resultTask = await Task.WhenAny(list);
+            list.Remove(resultTask);
+            if (resultTask.IsCanceled)
+                throw new TimeoutException();
+            if (resultTask.IsFaulted || !resultTask.IsCompleted) continue;
+            
+            return await resultTask;;
+        }   
+        
+        throw new TimeoutException();
     }
 }
