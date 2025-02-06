@@ -102,7 +102,7 @@ namespace ClusterTests
 			return server;
 		}
 
-		protected TimeSpan[] ProcessRequests(double timeout, int take = 20)
+		protected TimeSpan[] ProcessRequests(double timeout, int take = 20, double delay = 0)
 		{
 			var addresses = clusterServers
 				.Select(cs => $"http://127.0.0.1:{cs.ServerOptions.Port}/{cs.ServerOptions.MethodName}/")
@@ -111,9 +111,10 @@ namespace ClusterTests
 			var client = CreateClient(addresses);
 
 			Console.WriteLine("Testing {0} started", client.GetType());
-			var result = Task.WhenAll(Enumerable.Range(0, take).Select(i => i.ToString("x8")).Select(
-				async query =>
+			var result = Task.WhenAll(Enumerable.Range(0, take).Select(i => i.ToString("x8"))
+				.Select(async (query, i) =>
 				{
+					await Task.Delay(TimeSpan.FromMilliseconds(i * delay));
 					var timer = Stopwatch.StartNew();
 					try
 					{
