@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using log4net;
 
@@ -13,9 +11,26 @@ namespace ClusterClient.Clients
         {
         }
 
-        public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
+        public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-            throw new NotImplementedException();
+            var addressesCount = ReplicaAddresses.Length;
+            var sw = new Stopwatch();
+            
+            sw.Start();
+            foreach (var address in ReplicaAddresses)
+            {
+                var request = CreateRequest($"{address}?query={query}");
+                var timeForRequest = (timeout - sw.Elapsed) / addressesCount;
+
+                var task = ProcessRequestAsync(request);
+                await Task.WhenAny(task, Task.Delay(timeForRequest));
+                if (task.IsCompletedSuccessfully && task.Result != null)
+                    return task.Result;
+
+                addressesCount--;
+            }
+            
+            throw new TimeoutException();
         }
 
         protected override ILog Log => LogManager.GetLogger(typeof(RoundRobinClusterClient));
