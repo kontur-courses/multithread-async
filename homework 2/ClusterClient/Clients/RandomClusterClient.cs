@@ -4,14 +4,9 @@ using log4net;
 
 namespace ClusterClient.Clients;
 
-public class RandomClusterClient : ClusterClientBase
+public class RandomClusterClient(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
 {
     private readonly Random random = new();
-
-    public RandomClusterClient(string[] replicaAddresses)
-        : base(replicaAddresses)
-    {
-    }
 
     public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
     {

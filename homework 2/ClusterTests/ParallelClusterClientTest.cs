@@ -50,7 +50,7 @@ public class ParallelClusterClientTest : ClusterTest
 			CreateServer(Fast, status: 500);
 
 		var sw = Stopwatch.StartNew();
-		((Action)(() => ProcessRequests(Timeout))).Should().Throw<Exception>();
+		((Action)(() => ProcessRequests(Timeout))).Should().Throw<TimeoutException>();
 		sw.Elapsed.Should().BeCloseTo(TimeSpan.FromMilliseconds(Fast), Epsilon);
 	}
 }

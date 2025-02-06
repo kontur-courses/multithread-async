@@ -8,14 +8,9 @@ using log4net;
 
 namespace ClusterClient.Clients;
 
-public abstract class ClusterClientBase
+public abstract class ClusterClientBase(string[] replicaAddresses)
 {
-    protected string[] ReplicaAddresses { get; set; }
-
-    protected ClusterClientBase(string[] replicaAddresses)
-    {
-        ReplicaAddresses = replicaAddresses;
-    }
+    protected string[] ReplicaAddresses { get; set; } = replicaAddresses;
 
     public abstract Task<string> ProcessRequestAsync(string query, TimeSpan timeout);
     protected abstract ILog Log { get; }
