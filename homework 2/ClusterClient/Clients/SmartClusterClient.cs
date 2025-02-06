@@ -27,6 +27,7 @@ public class SmartClusterClient(string[] replicaAddresses) : ClusterClientBaseWi
             
             var sw = Stopwatch.StartNew();
             await Task.WhenAny(prevTask, Task.Delay(singleTimeout));
+            sw.Stop();
             timeout -= TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
 
             if (!prevTask.IsCompleted)

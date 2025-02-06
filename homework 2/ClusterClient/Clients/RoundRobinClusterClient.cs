@@ -22,6 +22,7 @@ public class RoundRobinClusterClient(string[] replicaAddresses) : ClusterClientB
             var singleTimeout = timeout / (ReplicaAddresses.Length - i);
             var sw = Stopwatch.StartNew();
             await Task.WhenAny(task, Task.Delay(singleTimeout));
+            sw.Stop();
             timeout -= TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
             
             if (task.IsCompleted && task.Result is not null) 
