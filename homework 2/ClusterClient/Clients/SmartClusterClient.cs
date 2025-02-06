@@ -20,7 +20,7 @@ public class SmartClusterClient(string[] replicaAddresses) : UpdatedClusterClien
         {
             var uri = address + "?query=" + query;
             Log.InfoFormat($"Processing {uri}");
-            list.Add(Get(uri, cts.Token));
+            list.Add(GetData(uri, cts.Token));
             await Task.Delay(interval);
             var resultTask = await Task.WhenAny(list);
             list.Remove(resultTask);

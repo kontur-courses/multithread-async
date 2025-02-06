@@ -17,7 +17,7 @@ public class RoundRobinClusterClient(string[] replicaAddresses) : UpdatedCluster
             var uri = address + "?query=" + query;
             Log.InfoFormat($"Processing {uri}");
             var cts = new CancellationTokenSource();
-            var resultTask = Get(uri, cts.Token).WaitAsync(timeout);
+            var resultTask = GetData(uri, cts.Token).WaitAsync(timeout);
             await Task.WhenAny(resultTask, Task.Delay(interval)); //
             if (!resultTask.IsFaulted && resultTask.IsCompleted)
                 return await resultTask;

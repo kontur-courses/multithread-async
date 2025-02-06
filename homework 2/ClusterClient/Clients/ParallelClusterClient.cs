@@ -15,7 +15,7 @@ public class ParallelClusterClient(string[] replicaAddresses) : UpdatedClusterCl
         Log.InfoFormat($"Parallel processing of all addresses with the query=\"{query}\" parameter");
         var cts = new CancellationTokenSource();
         var tasks =  ReplicaAddresses
-            .Select(uri => Get(uri + "?query=" + query, cts.Token))
+            .Select(uri => GetData(uri + "?query=" + query, cts.Token))
             .ToList();
         
         cts.CancelAfter(timeout);

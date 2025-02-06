@@ -11,7 +11,7 @@ namespace ClusterClient.Clients;
 public abstract class UpdatedClusterClientBase(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
 {
     protected readonly HttpClient HttpClient = new();
-    protected virtual async Task<string> Get(string uri, CancellationToken token)
+    protected virtual async Task<string> GetData(string uri, CancellationToken token)
     {
         uri = Uri.EscapeUriString(uri);
         var stream = await HttpClient.GetStreamAsync(uri, token);
