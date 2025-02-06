@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using log4net;
 
@@ -13,11 +15,28 @@ namespace ClusterClient.Clients
         {
         }
 
-        public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
+        public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-            throw new NotImplementedException();
-        }
+            var cts = new CancellationTokenSource(timeout);
 
-        protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));
+			var tasks = ReplicaAddresses.Select(addr => CreateRequestTaskWithCancel(addr, query, cts.Token)).ToList();
+
+			while (tasks.Count > 0)
+			{
+				var completedTask = await Task.WhenAny(tasks);
+
+				if (completedTask.IsCompletedSuccessfully)
+				{
+					cts.Cancel();
+					return completedTask.Result;
+				}
+
+				tasks.Remove(completedTask);
+			}
+
+			throw new TimeoutException();
+		}
+
+		protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));
     }
 }

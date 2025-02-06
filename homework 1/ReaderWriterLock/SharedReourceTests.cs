@@ -1,9 +1,8 @@
 using System;
 using System.Linq;
 using System.Threading;
+using FluentAssertions;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
-
 namespace ReaderWriterLock;
 
 [TestFixture]
@@ -11,25 +10,37 @@ public class SharedResourceTests
 {
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
-    private SharedResourceBase _sharedResource;
 
     [Test]
-    public void TestConcurrentReadWrite()
+    public void TestConcurrentReadWriteLock()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной.
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
-        
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
-    }
+        var sharedResource = new SharedResourceLock();
+
+		TestConcurentReadWrite(sharedResource, ReadersThreads, WritersThreads);
+	}
     
     [Test]
-    public void TestConcurrentReadWriteRwLock()
+	public void TestConcurrentReadWriteRwLock()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
-        
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
-    }
+		var sharedResource = new SharedResourceRwLock();
+
+		TestConcurentReadWrite(sharedResource, ReadersThreads, WritersThreads);
+	}
+
+	public void TestConcurentReadWrite(SharedResourceBase sharedResource, int readersCount, int writersCount)
+	{
+		var readers = Enumerable.Range(0, readersCount)
+			.Select(_ => new Thread(() => sharedResource.Read()));
+
+		var writers = Enumerable.Range(0, writersCount)
+			.Select(i => $"Data {i}")
+			.Select(data => new Thread(() => sharedResource.Write(data)));
+
+		var threads = writers.Concat(readers).ToArray();
+
+		threads.ForEach(thread => thread.Start());
+		threads.ForEach(thread => thread.Join());
+
+		sharedResource.Read().Should().BeEquivalentTo($"Data {writersCount - 1}");
+	}
 }
