@@ -17,13 +17,11 @@ namespace ClusterClient.Clients
             using var cancellation = new CancellationTokenSource(timeout);
             Log.InfoFormat($"Start processing query \"{query}\" with {timeout} timeout");
 
-            var stopwatch = new Stopwatch();
-
             var replicasLeftCount = ReplicaAddresses.Length;
             var tasks = new List<Task<string>>(ReplicaAddresses.Length);
             foreach (var address in ReplicaAddresses)
             {
-                stopwatch.Restart();
+                var stopwatch = Stopwatch.StartNew();
 
                 var request = CreateRequest($"{address}?query={query}");
                 Log.InfoFormat($"Processing {request.RequestUri}");
@@ -37,11 +35,11 @@ namespace ClusterClient.Clients
                 tasks.Add(requestTask);
 
                 var completedTask = await Task.WhenAny(tasks.Concat(new Task[] { timeoutTask }));
-                stopwatch.Stop();
+                var workingTime = stopwatch.Elapsed;
 
                 if (completedTask.IsFaulted)
                 {
-                    timeout = timeout.Subtract(stopwatch.Elapsed);
+                    timeout = timeout.Subtract(workingTime);
                     replicasLeftCount -= 1;
                     continue;
                 }

@@ -31,7 +31,8 @@ namespace ClusterClient.Clients
                 var request = CreateRequest($"{address}?query={query}");
                 Log.InfoFormat($"Processing {request.RequestUri}");
 
-                var timeoutTask = Task.Delay(timeout / replicasLeftCount);
+                var timeoutPerTask = timeout / replicasLeftCount;
+                var timeoutTask = Task.Delay(timeoutPerTask);
                 var requestTask = Task.Run(async () =>
                 {
                     cancellation.Token.Register(request.Abort);
@@ -42,7 +43,7 @@ namespace ClusterClient.Clients
                 var completedTask = await Task.WhenAny(tasks.Keys.Concat(new Task[] { timeoutTask }));
                 if (completedTask == timeoutTask)
                 {
-                    replicasPriorityManager.AddToReplicaStatsTime(address, timeout / replicasLeftCount);
+                    replicasPriorityManager.AddToReplicaStatsTime(address, timeoutPerTask);
                     continue;
                 }
 

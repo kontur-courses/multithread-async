@@ -81,7 +81,8 @@ namespace ClusterClient.Clients.Extensions
         {
             foreach (var pair in tasks)
             {
-                replicasPriorityManager.AddToReplicaStatsTime(pair.Value.address, pair.Value.stopwatch.Elapsed);
+                replicasPriorityManager
+                    .AddToReplicaStatsTime(pair.Value.address, pair.Value.stopwatch.Elapsed);
             }
         }
     }

@@ -13,7 +13,6 @@ namespace ClusterClient.Clients
     {
         public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-            var stopwatch = new Stopwatch();
             Log.InfoFormat($"Start processing query \"{query}\" with {timeout} timeout");
 
             var replicasOrder = replicasPriorityManager.SortReplicasAddresses(ReplicaAddresses);
@@ -21,7 +20,7 @@ namespace ClusterClient.Clients
 
             foreach (var address in replicasOrder)
             {
-                stopwatch.Restart();
+                var stopwatch = Stopwatch.StartNew();
 
                 var request = CreateRequest($"{address}?query={query}");
                 Log.InfoFormat($"Processing {request.RequestUri}");
@@ -30,17 +29,17 @@ namespace ClusterClient.Clients
                 var requestTask = ProcessRequestAsync(request);
 
                 await Task.WhenAny(requestTask, timeoutTask);
-                stopwatch.Stop();
+                var workingTime = stopwatch.Elapsed;
 
                 if (requestTask.IsFaulted)
                 {
                     replicasPriorityManager.SetReplicaStatsTime(address, TimeSpan.MaxValue);
-                    timeout = timeout.Subtract(stopwatch.Elapsed);
+                    timeout = timeout.Subtract(workingTime);
                     replicasLeftCount -= 1;
                     continue;
                 }
 
-                replicasPriorityManager.AddToReplicaStatsTime(address, stopwatch.Elapsed);
+                replicasPriorityManager.AddToReplicaStatsTime(address, workingTime);
                 if (requestTask.IsCompletedSuccessfully)
                 {
                     return requestTask.Result;
