@@ -16,7 +16,7 @@ public class RoundRobinClusterClient(string[] replicaAddresses) : ClusterClientB
         var timeLimit = timeout;
         var timer = new Stopwatch();
         var totalCount = ReplicaAddresses.Length;
-        var requestTimeout = timeLimit / ReplicaAddresses.Length;
+        var requestTimeout = timeLimit / totalCount;
 
         foreach (var replicaAddress in ReplicaAddresses)
         {
@@ -29,7 +29,7 @@ public class RoundRobinClusterClient(string[] replicaAddresses) : ClusterClientB
                 return await requestTask;
             totalCount -= 1;
             timeLimit -= timer.Elapsed;
-            if (totalCount > 0)
+            if (totalCount > 1)
                 requestTimeout = timeLimit / totalCount;
         }
         throw new TimeoutException();
