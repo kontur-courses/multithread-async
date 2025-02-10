@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
@@ -20,11 +21,11 @@ public class SharedResourcePerformanceTests
     public void TestLockPerformance()
     {
         _sharedResource = new SharedResourceLock();
-        long lockTime = MeasurePerformance();
+        var lockTime = MeasurePerformance();
         Console.WriteLine($"Lock time taken: {lockTime} ms");
 
         _sharedResource = new SharedResourceRwLock();
-        long rwLockTime = MeasurePerformance();
+        var rwLockTime = MeasurePerformance();
         Console.WriteLine($"ReaderWriterLock time taken: {rwLockTime} ms");
 
         // Проверка, что время выполнения с ReaderWriterLock меньше, чем с Lock
@@ -38,6 +39,24 @@ public class SharedResourcePerformanceTests
         // - Чтение общего ресурса в количестве ReadersThreads читающих потоков
         // - Запись значений в количестве WritersThreads записывающих потоков
         // - В вызовах читателей и писателей обязательно нужно вызывать подсчет факториала для симуляции полезной нагрузки
-        throw new NotImplementedException();
+        
+        var writeThreads = Enumerable.Range(0, WritersThreads)
+            .Select(i => new Thread(_ => _sharedResource.ComputeFactorial(FactorialNumber)))
+            .ToArray();
+        var readThreads = Enumerable.Range(0, ReadersThreads)
+            .Select(_ => new Thread(_ => _sharedResource.ComputeFactorial(FactorialNumber)))
+            .ToArray();
+        
+        var stopwatch = Stopwatch.StartNew();
+        
+        writeThreads.ForEach(t => t.Start());
+        readThreads.ForEach(t => t.Start());
+
+        writeThreads.ForEach(t => t.Join());
+        readThreads.ForEach(t => t.Join());
+        
+        stopwatch.Stop();
+     
+        return stopwatch.ElapsedMilliseconds;
     }
 }

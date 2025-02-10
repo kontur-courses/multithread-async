@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using System.Threading;
 using NUnit.Framework;
@@ -16,20 +15,42 @@ public class SharedResourceTests
     [Test]
     public void TestConcurrentReadWrite()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной.
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
-        
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        _sharedResource = new SharedResourceLock();
+
+        var writeThreads = Enumerable.Range(0, WritersThreads)
+            .Select(i => new Thread(_ => _sharedResource.Write($"Data {i}")))
+            .ToArray();
+        var readThreads = Enumerable.Range(0, ReadersThreads)
+            .Select(_ => new Thread(_ => _sharedResource.Read()))
+            .ToArray();
+
+        writeThreads.ForEach(t => t.Start());
+        readThreads.ForEach(t => t.Start());
+
+        writeThreads.ForEach(t => t.Join());
+        readThreads.ForEach(t => t.Join());
+
+        ClassicAssert.AreEqual($"Data {WritersThreads - 1}", _sharedResource.Read());
     }
-    
+
     [Test]
     public void TestConcurrentReadWriteRwLock()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
-        
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        _sharedResource = new SharedResourceRwLock();
+
+        var writeThreads = Enumerable.Range(0, WritersThreads)
+            .Select(i => new Thread(_ => _sharedResource.Write($"Data {i}")))
+            .ToArray();
+        var readThreads = Enumerable.Range(0, ReadersThreads)
+            .Select(_ => new Thread(_ => _sharedResource.Read()))
+            .ToArray();
+
+        writeThreads.ForEach(t => t.Start());
+        readThreads.ForEach(t => t.Start());
+
+        writeThreads.ForEach(t => t.Join());
+        readThreads.ForEach(t => t.Join());
+
+        ClassicAssert.AreEqual($"Data {WritersThreads - 1}", _sharedResource.Read());
     }
 }
