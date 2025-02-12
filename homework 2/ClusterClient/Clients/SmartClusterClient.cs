@@ -1,23 +1,51 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using log4net;
 
-namespace ClusterClient.Clients
+namespace ClusterClient.Clients;
+
+public class SmartClusterClient(string[] replicaAddresses) : ClusterClientBase(replicaAddresses)
 {
-    public class SmartClusterClient : ClusterClientBase
+    public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
     {
-        public SmartClusterClient(string[] replicaAddresses) : base(replicaAddresses)
+        var tasksWithIdx = ReplicaAddresses
+            .Select((uri, index) =>
+            {
+                var request = CreateRequest($"{uri}?query={query}");
+                return (TryProcessRequestAsync(request), index);
+            });
+        var previousTasks = new List<Task<string>>();
+
+        foreach (var (task, index) in tasksWithIdx)
         {
+            previousTasks.Add(task);
+            var previousTask = Task.WhenAny(previousTasks);
+            var singleTimeout = timeout / (ReplicaAddresses.Length - index);
+            var timer = Stopwatch.StartNew();
+
+            await Task.WhenAny(previousTask, Task.Delay(singleTimeout));
+
+            timer.Stop();
+            timeout -= TimeSpan.FromMilliseconds(timer.ElapsedMilliseconds);
+
+            if (!previousTask.IsCompleted)
+            {
+                continue;
+            }
+
+            if (previousTask.Result.Result is not null)
+            {
+                return previousTask.Result.Result;
+            }
+
+            previousTasks.Remove(previousTask.Result);
         }
 
-        public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override ILog Log => LogManager.GetLogger(typeof(SmartClusterClient));
+        throw new TimeoutException();
     }
+
+    protected override ILog Log => LogManager.GetLogger(typeof(SmartClusterClient));
 }
