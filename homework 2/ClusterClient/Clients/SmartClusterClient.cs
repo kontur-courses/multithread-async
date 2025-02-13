@@ -17,7 +17,7 @@ namespace ClusterClient.Clients
             var activeTasks = new List<Task<string>>();
             var remainingReplicas = ReplicaAddresses.Length;
 
-            foreach (var uri in ReplicaAddresses)
+            foreach (var uri in GetSortedReplicasBySpeed())
             {
                 var elapsed = DateTime.UtcNow - startTime;
                 var remainingTime = timeout - elapsed;

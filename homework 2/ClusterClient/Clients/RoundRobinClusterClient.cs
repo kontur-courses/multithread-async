@@ -15,7 +15,7 @@ namespace ClusterClient.Clients
 
         public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-            var replicas = ReplicaAddresses.ToList();
+            var replicas = GetSortedReplicasBySpeed();
             var totalReplicas = replicas.Count;
             var startTime = DateTime.UtcNow;
 
