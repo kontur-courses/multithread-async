@@ -1,8 +1,7 @@
-using System;
 using System.Linq;
 using System.Threading;
+using FluentAssertions;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 namespace ReaderWriterLock;
 
@@ -11,25 +10,37 @@ public class SharedResourceTests
 {
     private const int WritersThreads = 100;
     private const int ReadersThreads = 1000;
-    private SharedResourceBase _sharedResource;
+    private SharedResourceBase sharedResource;
 
     [Test]
     public void TestConcurrentReadWrite()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной.
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
-        
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        sharedResource = new SharedResourceLock();
+        RunConcurrentReadWriteTest();
     }
     
     [Test]
     public void TestConcurrentReadWriteRwLock()
     {
-        // Реализовать проверку конкурентной записи и чтения, где в конце должны проверить что данные последнего потока записаны
-        // Проверка должна быть многопоточной
-        // Потоков чтения должно быть ReadersThreads, потоков записи должно быть WritersThreads
+        sharedResource = new SharedResourceRwLock();
+        RunConcurrentReadWriteTest();
+    }
+    
+    private void RunConcurrentReadWriteTest()
+    {
+        var writerThreads = Enumerable.Range(1, WritersThreads)
+            .Select(i => new Thread(() => sharedResource.Write($"Data {i}")))
+            .ToList();
         
-        ClassicAssert.AreEqual($"Data {WritersThreads-1}", _sharedResource.Read());
+        var readerThreads = Enumerable.Range(0, ReadersThreads)
+            .Select(_ => new Thread(() => sharedResource.Read()))
+            .ToList();
+        
+        var allThreads = writerThreads.Concat(readerThreads).ToList();
+        
+        allThreads.ForEach(thread => thread.Start());
+        allThreads.ForEach(thread => thread.Join());
+        
+        sharedResource.Read().Should().BeEquivalentTo($"Data {WritersThreads}");
     }
 }

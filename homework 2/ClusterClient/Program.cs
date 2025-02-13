@@ -16,7 +16,7 @@ namespace ClusterClient
     {
         static void Main(string[] args)
         {
-            Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             XmlConfigurator.Configure(LogManager.GetRepository(Assembly.GetCallingAssembly()), new FileInfo("log4net.config"));
 
             if (!TryGetReplicaAddresses(args, out var replicaAddresses))
