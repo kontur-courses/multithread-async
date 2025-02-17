@@ -24,9 +24,16 @@ public class SharedResourceRwLock : SharedResourceBase
 
     public override long ComputeFactorial(int number)
     {
+        long outputString = -1;
         lockingObject.EnterReadLock();
-        var outputString = Factorial(number);
-        lockingObject.ExitReadLock();
+        try
+        {
+            outputString = Factorial(number);
+        }
+        finally
+        {
+            lockingObject.ExitReadLock();
+        }
         return outputString;
     }
 }

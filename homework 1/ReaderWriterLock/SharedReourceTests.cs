@@ -35,7 +35,8 @@ public class SharedResourceTests
 
         for (int i = 0; i < WritersThreads; i++)
         {
-           writeThreads.Add(new Thread(_ => _sharedResourceLock.Write($"Data {i}")));
+            var j = i;
+            writeThreads.Add(new Thread(_ => _sharedResourceLock.Write($"Data {j}")));
         }
 
         for (int i = 0; i < ReadersThreads; i++)
@@ -46,7 +47,7 @@ public class SharedResourceTests
         allThreads.ForEach(thread => thread.Start());
         allThreads.ForEach(thread => thread.Join());
 
-        ClassicAssert.AreEqual($"Data {WritersThreads}", _sharedResourceLock.Read());
+        ClassicAssert.AreEqual($"Data {WritersThreads - 1}", _sharedResourceLock.Read());
     }
 
     [Test]
@@ -61,7 +62,7 @@ public class SharedResourceTests
 
         for (int i = 0; i < WritersThreads; i++)
         {
-           writeThreads.Add(new Thread(_ => _sharedResourceRw.Write($"Data {i}")));
+            writeThreads.Add(new Thread(_ => _sharedResourceRw.Write($"Data {i}")));
         }
 
         for (int i = 0; i < ReadersThreads; i++)
