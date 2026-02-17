@@ -20,6 +20,9 @@ namespace NMAP
 
             var scanner = new SequentialScanner();
             scanner.Scan(ipAddrs, ports).Wait();
+
+            // var asyncScanner = new AsyncScanner();
+            // scanner.Scan(ipAddrs, ports).Wait();
         }
 
         private static IPAddress[] GenIpAddrs()

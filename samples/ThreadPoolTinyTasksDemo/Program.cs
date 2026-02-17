@@ -9,7 +9,7 @@ internal class Program
 
     private static void Main(string[] args)
     {
-        var testParams = new (int tasks, int actions)[] { (10000000, 1), (1000000, 10), (100000, 100), (10000, 1000) };
+        var testParams = new (int tasks, int actions)[] { (10_000_000, 1), (1_000_000, 10), (100_000, 100), (10_000, 1000) };
         foreach (var (tsks, acts) in testParams)
         {
             X = 0;
@@ -17,12 +17,20 @@ internal class Program
             ActionsInTask = acts;
 
             var sw = Stopwatch.StartNew();
+            //RunSequentially();
             RunOneTaskSequentially();
             sw.Stop();
             Console.WriteLine($"Elapsed {sw.Elapsed}. X = {X}. TasksCount = {TasksCount}, ActionsInTask = {ActionsInTask}.");
         }
     }
 
+    private static void RunSequentially()
+    {
+        for (var i = 0; i < TasksCount; i++)
+        {
+            ChangeFunction();
+        }
+    }
 
     private static void RunOneTaskSequentially()
     {

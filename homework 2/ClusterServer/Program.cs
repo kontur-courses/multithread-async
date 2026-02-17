@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using log4net;
 using log4net.Config;
 
@@ -13,6 +15,9 @@ namespace Cluster
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             XmlConfigurator.Configure(LogManager.GetRepository(Assembly.GetCallingAssembly()), new FileInfo("log4net.config"));
+            ThreadPool.SetMinThreads(15, 100);
+            ThreadPool.SetMaxThreads(30, 1000);
+            Console.WriteLine($"PID: {Process.GetCurrentProcess().Id}");
 
             try
             {
